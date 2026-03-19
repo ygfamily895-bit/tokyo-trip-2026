@@ -165,9 +165,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .day-card.collapsed .day-body{display:none}
 .stop-list{list-style:none}
 .stop-item{
-  display:flex;align-items:flex-start;gap:8px;padding:6px 4px;
+  display:flex;align-items:flex-start;gap:8px;padding:6px 4px 8px;
   border-bottom:1px dashed #f0ede8;position:relative;
-  transition:background .15s;border-radius:6px;
+  transition:background .15s;border-radius:6px;flex-wrap:wrap;
 }
 .stop-item:last-child{border-bottom:none}
 .stop-item:hover{background:#fafaf8}
@@ -194,7 +194,34 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   line-height:1.6;min-height:20px;display:block;box-sizing:border-box;
 }
 .stop-note-input:focus{background:#f5f3ef;color:var(--text)}
-.stop-actions{display:flex;gap:3px;align-items:center;opacity:0;transition:opacity .15s;flex-shrink:0}
+.stop-actions{display:flex;gap:3px;align-items:flex-start;padding-top:4px;opacity:0;transition:opacity .15s;flex-shrink:0}
+.stop-item:hover .stop-actions{opacity:1}
+.stop-extra{width:100%;padding-left:42px;margin-top:4px;display:flex;flex-direction:column;gap:5px}
+.stop-field{border:1px solid #ece8e0;border-radius:7px;overflow:hidden;background:#fff}
+.stop-field-header{display:flex;align-items:center;gap:6px;padding:4px 9px;background:#f5f3ef;border-bottom:1px solid #ece8e0}
+.stop-field-label{
+  font-size:10px;font-weight:700;color:#888;letter-spacing:.5px;
+  border:none;background:transparent;outline:none;
+  font-family:'Noto Sans TC',sans-serif;flex:1;
+}
+.stop-field-label:focus{background:#ebe8e0;border-radius:3px;padding:0 4px}
+.stop-field-label::placeholder{font-weight:400;letter-spacing:0}
+.stop-field-body{
+  font-size:12.5px;color:var(--text);border:none;background:transparent;outline:none;
+  font-family:'Noto Sans TC',sans-serif;width:100%;padding:6px 10px;
+  resize:none;overflow:hidden;line-height:1.7;min-height:32px;display:block;box-sizing:border-box;
+}
+.stop-field-body:focus{background:#fafaf8}
+.stop-field-body::placeholder{color:#ccc}
+.stop-field-del{background:none;border:none;cursor:pointer;color:#ccc;font-size:11px;padding:1px 4px;border-radius:3px;line-height:1;flex-shrink:0}
+.stop-field-del:hover{background:#fdecea;color:var(--accent)}
+.add-stop-field-btn{
+  display:inline-flex;align-items:center;gap:4px;background:none;
+  border:1px dashed #d0cdc5;border-radius:6px;padding:3px 9px;
+  color:#aaa;font-size:11px;cursor:pointer;align-self:flex-start;
+  font-family:'Noto Sans TC',sans-serif;transition:all .15s;
+}
+.add-stop-field-btn:hover{border-color:#9b59b6;color:#6b4fa0;background:#f8f4ff}
 .stop-item:hover .stop-actions{opacity:1}
 .tip-row{margin-top:8px;display:flex;align-items:flex-start;gap:8px}
 .tip-box-editable{
@@ -632,6 +659,7 @@ function renderDay(day) {
 }
 
 function renderStop(s, dayId) {
+  const stopFields = (s.fields||[]).map(f => renderStopField(f, s.id, dayId)).join('');
   return `<li class="stop-item" draggable="true" data-id="${s.id}" data-day="${dayId}">
     <span class="drag-handle">⠿</span>
     <div class="stop-icon-wrap">
@@ -647,7 +675,26 @@ function renderStop(s, dayId) {
     <div class="stop-actions">
       <button class="icon-btn del" onclick="deleteStop('${dayId}','${s.id}')">✕</button>
     </div>
+    <div class="stop-extra">
+      ${stopFields}
+      <button class="add-stop-field-btn" onclick="addStopField('${dayId}','${s.id}')">＋ 新增欄位</button>
+    </div>
   </li>`;
+}
+
+function renderStopField(f, stopId, dayId) {
+  return `<div class="stop-field" data-sfid="${f.id}">
+    <div class="stop-field-header">
+      <input class="stop-field-label" value="${escA(f.label)}"
+        onchange="updateStopField('${dayId}','${stopId}','${f.id}','label',this.value)"
+        placeholder="欄位名稱（交通路線、購物清單、預算…）">
+      <button class="stop-field-del" onclick="deleteStopField('${dayId}','${stopId}','${f.id}')">✕</button>
+    </div>
+    <textarea class="stop-field-body"
+      oninput="autoResize(this)"
+      onchange="updateStopField('${dayId}','${stopId}','${f.id}','body',this.value)"
+      placeholder="輸入內容…">${esc(f.body)}</textarea>
+  </div>`;
 }
 
 function renderField(f, dayId) {
@@ -677,7 +724,7 @@ function autoResizeAll(){
 
 function bindDayEvents(sec, day) {
   requestAnimationFrame(()=>{
-    sec.querySelectorAll('.stop-note-input, .custom-field-body').forEach(autoResize);
+    sec.querySelectorAll('.stop-note-input, .custom-field-body, .stop-field-body').forEach(autoResize);
   });
   let dragSrc=null, dragSrcDay=null;
   sec.querySelectorAll('.stop-item').forEach(item=>{
@@ -755,6 +802,37 @@ window.deleteField=(dayId,fieldId)=>{
   const d=DATA.days.find(x=>x.id===dayId);
   if(!d||!d.fields)return;
   d.fields=d.fields.filter(f=>f.id!==fieldId);
+  render();scheduleSave();
+};
+// ── STOP-LEVEL FIELDS ──
+window.addStopField=(dayId,stopId)=>{
+  const d=DATA.days.find(x=>x.id===dayId);
+  if(!d)return;
+  const s=d.stops.find(x=>x.id===stopId);
+  if(!s)return;
+  if(!s.fields)s.fields=[];
+  const id='sf'+Date.now();
+  s.fields.push({id,label:'',body:''});
+  render();scheduleSave();
+  setTimeout(()=>{
+    const el=document.querySelector(`.stop-field[data-sfid="${id}"] .stop-field-label`);
+    if(el)el.focus();
+  },50);
+};
+window.updateStopField=(dayId,stopId,fieldId,key,val)=>{
+  const d=DATA.days.find(x=>x.id===dayId);
+  if(!d)return;
+  const s=d.stops.find(x=>x.id===stopId);
+  if(!s||!s.fields)return;
+  const f=s.fields.find(x=>x.id===fieldId);
+  if(f){f[key]=val;scheduleSave();}
+};
+window.deleteStopField=(dayId,stopId,fieldId)=>{
+  const d=DATA.days.find(x=>x.id===dayId);
+  if(!d)return;
+  const s=d.stops.find(x=>x.id===stopId);
+  if(!s||!s.fields)return;
+  s.fields=s.fields.filter(f=>f.id!==fieldId);
   render();scheduleSave();
 };
 function moveStop(srcDayId,srcStopId,tgtDayId,tgtStopId){
