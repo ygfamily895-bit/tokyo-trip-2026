@@ -211,6 +211,19 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   font-family:'Noto Sans TC',sans-serif;transition:all .15s;
 }
 .add-stop-btn:hover{border-color:var(--accent2);color:var(--accent2);background:#f0f4fb}
+.custom-fields{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.custom-field{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fafaf8}
+.custom-field-header{display:flex;align-items:center;gap:6px;padding:5px 10px;background:#f3f1ec;border-bottom:1px solid var(--border)}
+.custom-field-label{font-size:11px;font-weight:700;color:var(--muted);border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;flex:1;letter-spacing:.3px;text-transform:uppercase}
+.custom-field-label:focus{background:#ebe8e0;border-radius:3px;padding:0 4px}
+.custom-field-label::placeholder{text-transform:none}
+.custom-field-body{font-size:13px;color:var(--text);border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;width:100%;padding:7px 10px;resize:none;overflow:hidden;line-height:1.7;min-height:36px;display:block;box-sizing:border-box}
+.custom-field-body:focus{background:#f5f3ef}
+.custom-field-body:empty::before{content:attr(data-placeholder);color:#bbb}
+.field-del-btn{background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:2px 4px;border-radius:4px;line-height:1;flex-shrink:0}
+.field-del-btn:hover{background:#fdecea;color:var(--accent)}
+.add-field-btn{display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:5px 12px;color:var(--muted);font-size:11px;cursor:pointer;margin-top:4px;font-family:'Noto Sans TC',sans-serif;transition:all .15s}
+.add-field-btn:hover{border-color:#9b59b6;color:#6b4fa0;background:#f8f4ff}
 .add-day-wrap{max-width:880px;margin:0 auto 40px;padding:0 16px}
 .add-day-btn{
   display:flex;align-items:center;justify-content:center;gap:8px;
@@ -584,6 +597,7 @@ function render() {
 
 function renderDay(day) {
   const stops = day.stops.map(s => renderStop(s, day.id)).join('');
+  const fields = (day.fields||[]).map(f => renderField(f, day.id)).join('');
   return `<div class="day-card" data-cat="${day.cat}" data-id="${day.id}">
     <div class="day-header" onclick="toggleCollapse('${day.id}',event)">
       <span class="day-num">${esc(day.num)}</span>
@@ -608,7 +622,11 @@ function renderDay(day) {
         <div class="tip-box-editable" contenteditable="true" data-placeholder="💡 新增備忘或小貼士…"
           onblur="updateDay('${day.id}','tip',this.innerText.trim())">${esc(day.tip)}</div>
       </div>
-      <button class="add-stop-btn" onclick="addStop('${day.id}')">＋ 新增行程</button>
+      <div class="custom-fields" id="fields-${day.id}">${fields}</div>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="add-stop-btn" style="flex:1;min-width:120px" onclick="addStop('${day.id}')">＋ 新增行程</button>
+        <button class="add-field-btn" onclick="addField('${day.id}')">＋ 新增欄位</button>
+      </div>
     </div>
   </div>`;
 }
@@ -632,6 +650,20 @@ function renderStop(s, dayId) {
   </li>`;
 }
 
+function renderField(f, dayId) {
+  return `<div class="custom-field" data-fid="${f.id}" data-day="${dayId}">
+    <div class="custom-field-header">
+      <input class="custom-field-label" value="${escA(f.label)}"
+        onchange="updateField('${dayId}','${f.id}','label',this.value)"
+        placeholder="欄位名稱（如：交通路線、購物清單）">
+      <button class="field-del-btn" onclick="deleteField('${dayId}','${f.id}')" title="刪除欄位">✕</button>
+    </div>
+    <textarea class="custom-field-body"
+      oninput="autoResize(this)"
+      onchange="updateField('${dayId}','${f.id}','body',this.value)"
+      placeholder="輸入內容…">${esc(f.body)}</textarea>
+  </div>`;
+}
 function catL(c){return{transit:'抵返',tokyo:'東京',daytrip:'近郊',event:'演唱會',yokohama:'橫濱',shopping:'採買',free:'待規劃'}[c]||c}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function escA(s){return(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
@@ -645,7 +677,7 @@ function autoResizeAll(){
 
 function bindDayEvents(sec, day) {
   requestAnimationFrame(()=>{
-    sec.querySelectorAll('.stop-note-input').forEach(autoResize);
+    sec.querySelectorAll('.stop-note-input, .custom-field-body').forEach(autoResize);
   });
   let dragSrc=null, dragSrcDay=null;
   sec.querySelectorAll('.stop-item').forEach(item=>{
@@ -699,6 +731,30 @@ window.deleteStop=(dayId,stopId)=>{
   const d=DATA.days.find(x=>x.id===dayId);
   if(!d)return;
   d.stops=d.stops.filter(s=>s.id!==stopId);
+  render();scheduleSave();
+};
+window.addField=(dayId)=>{
+  const d=DATA.days.find(x=>x.id===dayId);
+  if(!d)return;
+  if(!d.fields)d.fields=[];
+  const id='f'+Date.now();
+  d.fields.push({id,label:'',body:''});
+  render();scheduleSave();
+  setTimeout(()=>{
+    const el=document.querySelector(`.custom-field[data-fid="${id}"] .custom-field-label`);
+    if(el)el.focus();
+  },50);
+};
+window.updateField=(dayId,fieldId,key,val)=>{
+  const d=DATA.days.find(x=>x.id===dayId);
+  if(!d||!d.fields)return;
+  const f=d.fields.find(x=>x.id===fieldId);
+  if(f){f[key]=val;scheduleSave();}
+};
+window.deleteField=(dayId,fieldId)=>{
+  const d=DATA.days.find(x=>x.id===dayId);
+  if(!d||!d.fields)return;
+  d.fields=d.fields.filter(f=>f.id!==fieldId);
   render();scheduleSave();
 };
 function moveStop(srcDayId,srcStopId,tgtDayId,tgtStopId){
