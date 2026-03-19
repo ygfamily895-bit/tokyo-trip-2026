@@ -190,7 +190,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .stop-note-input{
   font-size:11.5px;color:var(--muted);border:none;background:transparent;outline:none;
   font-family:'Noto Sans TC',sans-serif;width:100%;margin-top:1px;
-  padding:1px 4px;border-radius:4px;resize:none;overflow:hidden;line-height:1.5;min-height:18px;
+  padding:1px 4px;border-radius:4px;resize:none;overflow:hidden;
+  line-height:1.6;min-height:20px;display:block;box-sizing:border-box;
 }
 .stop-note-input:focus{background:#f5f3ef;color:var(--text)}
 .stop-actions{display:flex;gap:3px;align-items:center;opacity:0;transition:opacity .15s;flex-shrink:0}
@@ -621,7 +622,7 @@ function renderStop(s, dayId) {
     <div class="stop-content">
       <input class="stop-name-input" value="${escA(s.name)}"
         onchange="updateStop('${dayId}','${s.id}','name',this.value)" placeholder="行程名稱">
-      <textarea class="stop-note-input" rows="1"
+      <textarea class="stop-note-input"
         onchange="updateStop('${dayId}','${s.id}','note',this.value)"
         oninput="autoResize(this)" placeholder="備注：交通方式、提醒…">${esc(s.note)}</textarea>
     </div>
@@ -634,10 +635,18 @@ function renderStop(s, dayId) {
 function catL(c){return{transit:'抵返',tokyo:'東京',daytrip:'近郊',event:'演唱會',yokohama:'橫濱',shopping:'採買',free:'待規劃'}[c]||c}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function escA(s){return(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
-function autoResize(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px'}
+function autoResize(ta){
+  ta.style.height='auto';
+  ta.style.height=(ta.scrollHeight)+'px';
+}
+function autoResizeAll(){
+  document.querySelectorAll('.stop-note-input').forEach(autoResize);
+}
 
 function bindDayEvents(sec, day) {
-  sec.querySelectorAll('.stop-note-input').forEach(ta=>autoResize(ta));
+  requestAnimationFrame(()=>{
+    sec.querySelectorAll('.stop-note-input').forEach(autoResize);
+  });
   let dragSrc=null, dragSrcDay=null;
   sec.querySelectorAll('.stop-item').forEach(item=>{
     item.addEventListener('dragstart',e=>{
