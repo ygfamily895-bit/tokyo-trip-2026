@@ -427,13 +427,13 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
       </div>
     </div>
     <!-- PRESET PANEL -->
-    <div class="cover-preset-panel hidden" id="presetPanel">
+    <div class="cover-preset-panel hidden" id="presetPanel" onclick="event.stopPropagation()">
       <div class="preset-label">選擇預設封面</div>
       <div class="preset-grid" id="presetGrid"></div>
       <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
-        <button class="cover-img-btn" onclick="document.getElementById('coverFileInput').click()">📁 上傳本機圖片</button>
-        <button class="cover-img-btn" onclick="clearCover()" style="border-color:rgba(255,100,100,.4)">✕ 移除封面</button>
-        <button class="cover-img-btn" onclick="togglePresetPanel()" style="margin-left:auto">關閉</button>
+        <button class="cover-img-btn" onclick="event.stopPropagation();document.getElementById('coverFileInput').click()">📁 上傳本機圖片</button>
+        <button class="cover-img-btn" onclick="event.stopPropagation();clearCover()" style="border-color:rgba(255,100,100,.4)">✕ 移除封面</button>
+        <button class="cover-img-btn" onclick="event.stopPropagation();togglePresetPanel()" style="margin-left:auto">關閉</button>
       </div>
     </div>
   </div>
@@ -1006,18 +1006,18 @@ document.addEventListener('click',closeAllPickers);
 
 // ── COVER & META ──
 const PRESETS = [
-  {label:'東京夜景', url:'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&q=80'},
-  {label:'富士山', url:'https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=1200&q=80'},
-  {label:'淺草寺', url:'https://images.unsplash.com/photo-1583400500827-4a73813e9e0c?w=1200&q=80'},
-  {label:'新幹線', url:'https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=1200&q=80'},
-  {label:'櫻花', url:'https://images.unsplash.com/photo-1522383225653-ed111181a951?w=1200&q=80'},
-  {label:'渋谷', url:'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=1200&q=80'},
-  {label:'秋葉原', url:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200&q=80'},
-  {label:'和風街道', url:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80'},
-  {label:'夜晚居酒屋', url:'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1200&q=80'},
-  {label:'深色漸層', color:'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)'},
-  {label:'暖色漸層', color:'linear-gradient(135deg,#2d1b0e,#5c2d0e,#8b4513)'},
-  {label:'綠色森林', color:'linear-gradient(135deg,#0d2616,#1a4a2e,#2d6a4f)'},
+  {label:'東京夜景',   url:'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=900&q=75&auto=format'},
+  {label:'富士山',     url:'https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=900&q=75&auto=format'},
+  {label:'淺草寺',     url:'https://images.unsplash.com/photo-1583400500827-4a73813e9e0c?w=900&q=75&auto=format'},
+  {label:'新幹線',     url:'https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=900&q=75&auto=format'},
+  {label:'櫻花',       url:'https://images.unsplash.com/photo-1522383225653-ed111181a951?w=900&q=75&auto=format'},
+  {label:'渋谷',       url:'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=900&q=75&auto=format'},
+  {label:'秋葉原',     url:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=900&q=75&auto=format'},
+  {label:'和風街道',   url:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=900&q=75&auto=format'},
+  {label:'居酒屋夜晚', url:'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=900&q=75&auto=format'},
+  {label:'深藍漸層',   color:'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)',isGradient:true},
+  {label:'暖橙漸層',   color:'linear-gradient(135deg,#2d1b0e 0%,#7c3a00 50%,#c05c1a 100%)',isGradient:true},
+  {label:'森林綠',     color:'linear-gradient(135deg,#0d2616 0%,#1a4a2e 50%,#2d6a4f 100%)',isGradient:true},
 ];
 
 function renderPresetGrid() {
@@ -1026,21 +1026,36 @@ function renderPresetGrid() {
   grid.innerHTML = '';
   const currentUrl = DATA.meta?.coverUrl || '';
   PRESETS.forEach(p => {
+    const val = p.color || p.url;
     const sw = document.createElement('div');
-    sw.className = 'preset-swatch' + (currentUrl === (p.url||p.color) ? ' active' : '');
+    sw.className = 'preset-swatch' + (currentUrl === val ? ' active' : '');
     sw.title = p.label;
     if (p.url) {
       const img = document.createElement('img');
-      img.src = p.url; img.alt = p.label;
+      img.src = p.url;
+      img.alt = p.label;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
       sw.appendChild(img);
     } else {
       const div = document.createElement('div');
       div.className = 'preset-swatch-color';
       div.style.background = p.color;
+      div.style.width = '100%';
+      div.style.height = '100%';
       sw.appendChild(div);
     }
-    sw.onclick = () => setCover(p.url || p.color, !!p.color);
-    grid.appendChild(sw);
+    const label = document.createElement('div');
+    label.textContent = p.label;
+    label.style.cssText = 'font-size:9px;color:rgba(200,200,220,.7);text-align:center;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:72px';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer';
+    wrap.appendChild(sw);
+    wrap.appendChild(label);
+    wrap.onclick = e => {
+      e.stopPropagation();
+      setCover(val, !!p.isGradient);
+    };
+    grid.appendChild(wrap);
   });
 }
 
@@ -1051,6 +1066,10 @@ function setCover(urlOrGradient, isGradient) {
   applyCover();
   renderPresetGrid();
   scheduleSave();
+  // close panel after a short delay so user sees selection
+  setTimeout(() => {
+    document.getElementById('presetPanel').classList.add('hidden');
+  }, 300);
 }
 
 function applyCover() {
@@ -1105,16 +1124,16 @@ function uploadCoverImage(e) {
   const reader = new FileReader();
   reader.onload = ev => {
     setCover(ev.target.result, false);
-    document.getElementById('presetPanel').classList.add('hidden');
   };
   reader.readAsDataURL(file);
 }
 
-// close preset panel on outside click
+// close preset panel only when clicking outside the entire cover div
 document.addEventListener('click', e => {
   const panel = document.getElementById('presetPanel');
-  const btn = e.target.closest('.cover-img-btn');
-  if (panel && !panel.classList.contains('hidden') && !panel.contains(e.target) && !btn) {
+  if (!panel || panel.classList.contains('hidden')) return;
+  const cover = document.getElementById('cover');
+  if (!cover.contains(e.target)) {
     panel.classList.add('hidden');
   }
 });
