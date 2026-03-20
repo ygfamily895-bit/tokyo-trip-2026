@@ -460,6 +460,124 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .stop-tpl-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
 .tpl-name{font-weight:700;flex:1}
 .tpl-fields{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
+
+/* ── MAP BUTTON ── */
+.map-btn{
+  display:inline-flex;align-items:center;gap:3px;
+  background:none;border:none;cursor:pointer;
+  color:#aaa;font-size:12px;padding:1px 4px;border-radius:5px;
+  font-family:'Noto Sans TC',sans-serif;transition:all .15s;
+  text-decoration:none;
+}
+.map-btn:hover{color:#1a73e8;background:#e8f0fe}
+
+/* ── FLOATING TOOLS ── */
+.float-tools{
+  position:fixed;bottom:28px;right:20px;
+  display:flex;flex-direction:column;gap:8px;z-index:200;
+}
+.float-btn{
+  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:0 4px 16px rgba(0,0,0,.18);transition:all .2s;
+  font-family:'Noto Sans TC',sans-serif;
+}
+.float-btn:hover{transform:scale(1.1)}
+.float-btn-currency{background:#2d7a4f;color:#fff}
+.float-btn-pack{background:#3a5a8c;color:#fff}
+
+/* ── SLIDE PANEL ── */
+.slide-panel{
+  position:fixed;right:0;top:0;bottom:0;width:340px;max-width:95vw;
+  background:var(--card);box-shadow:-8px 0 40px rgba(0,0,0,.15);
+  z-index:500;display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+.slide-panel.open{transform:translateX(0)}
+.slide-panel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.slide-panel-title{font-size:15px;font-weight:700}
+.slide-close{background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:2px 6px;border-radius:6px}
+.slide-close:hover{background:#f0ede8}
+.slide-panel-body{flex:1;overflow-y:auto;padding:16px 20px}
+
+/* ── CURRENCY ── */
+.currency-display{
+  background:linear-gradient(135deg,#1a4a2e,#2d7a4f);
+  border-radius:14px;padding:20px;color:#fff;margin-bottom:16px;text-align:center;
+}
+.currency-result{font-size:32px;font-weight:700;margin:6px 0 2px}
+.currency-sub{font-size:12px;opacity:.75}
+.currency-inputs{display:grid;gap:10px}
+.currency-row{display:flex;align-items:center;gap:8px}
+.currency-flag{font-size:20px;flex-shrink:0}
+.currency-input-wrap{flex:1;position:relative}
+.currency-input{
+  width:100%;padding:10px 12px;border-radius:10px;
+  border:1.5px solid var(--border);font-size:16px;font-weight:700;
+  font-family:'Noto Sans TC',sans-serif;color:var(--text);
+  background:var(--bg);outline:none;text-align:right;
+}
+.currency-input:focus{border-color:#2d7a4f}
+.currency-unit{
+  font-size:11px;color:var(--muted);font-weight:700;
+  position:absolute;left:10px;top:50%;transform:translateY(-50%);
+}
+.rate-note{font-size:11px;color:var(--muted);text-align:center;margin-top:10px}
+.rate-input-row{display:flex;align-items:center;gap:6px;margin-top:8px;justify-content:center}
+.rate-input{
+  width:70px;padding:4px 8px;border-radius:7px;border:1.5px solid var(--border);
+  font-size:13px;font-family:'Noto Sans TC',sans-serif;text-align:center;
+  background:var(--bg);outline:none;color:var(--text);
+}
+.rate-input:focus{border-color:#2d7a4f}
+
+/* ── PACKING LIST ── */
+.pack-section{margin-bottom:14px}
+.pack-section-title{
+  font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--muted);
+  text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px;
+}
+.pack-item{
+  display:flex;align-items:center;gap:9px;
+  padding:7px 4px;border-bottom:1px solid #f0ede8;
+}
+.pack-item:last-child{border-bottom:none}
+.pack-check{
+  width:18px;height:18px;border-radius:5px;border:2px solid #d0cdc5;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:all .15s;background:#fff;
+}
+.pack-check.checked{background:var(--green);border-color:var(--green)}
+.pack-check.checked::after{content:'✓';color:#fff;font-size:11px;font-weight:700}
+.pack-label{
+  flex:1;font-size:13px;font-family:'Noto Sans TC',sans-serif;
+  border:none;background:transparent;outline:none;color:var(--text);
+}
+.pack-label.checked-text{text-decoration:line-through;color:var(--muted)}
+.pack-del{background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:2px 5px;border-radius:4px}
+.pack-del:hover{background:#fdecea;color:var(--accent)}
+.pack-add-row{display:flex;gap:6px;margin-top:8px}
+.pack-add-input{
+  flex:1;padding:7px 11px;border-radius:8px;border:1.5px solid var(--border);
+  font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);
+  background:var(--bg);outline:none;
+}
+.pack-add-input:focus{border-color:var(--accent2)}
+.pack-add-btn{
+  padding:7px 13px;border-radius:8px;border:none;
+  background:var(--accent2);color:#fff;font-size:12px;font-weight:700;
+  cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+}
+.pack-progress{
+  background:#f0ede8;border-radius:20px;height:6px;margin:10px 0 14px;overflow:hidden;
+}
+.pack-progress-bar{
+  height:100%;background:var(--green);border-radius:20px;transition:width .3s;
+}
+.pack-stats{font-size:11px;color:var(--muted);text-align:right;margin-top:-10px;margin-bottom:10px}
 /* ── EMOJI PICKER ── */
 .emoji-picker{
   position:absolute;z-index:200;left:0;top:32px;
@@ -579,6 +697,78 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
     <button class="add-day-btn" onclick="addDay()">＋ 新增一天</button>
   </div>
 </div>
+
+<!-- Floating tool buttons -->
+<div class="float-tools">
+  <button class="float-btn float-btn-pack" onclick="togglePanel('packPanel')" title="打包清單">🎒</button>
+  <button class="float-btn float-btn-currency" onclick="togglePanel('currencyPanel')" title="匯率換算">💴</button>
+</div>
+
+<!-- Currency Panel -->
+<div class="slide-panel" id="currencyPanel">
+  <div class="slide-panel-header">
+    <span class="slide-panel-title">💴 匯率換算</span>
+    <button class="slide-close" onclick="closePanel('currencyPanel')">✕</button>
+  </div>
+  <div class="slide-panel-body">
+    <div class="currency-display">
+      <div class="currency-sub">日圓 → 台幣</div>
+      <div class="currency-result" id="currencyResult">NT$ 0</div>
+      <div class="currency-sub" id="currencyResultJpy"></div>
+    </div>
+    <div class="currency-inputs">
+      <div class="currency-row">
+        <span class="currency-flag">🇯🇵</span>
+        <div class="currency-input-wrap">
+          <span class="currency-unit">¥</span>
+          <input class="currency-input" id="jpyInput" type="number" placeholder="0"
+            style="padding-left:28px" oninput="calcCurrency('jpy')">
+        </div>
+      </div>
+      <div class="currency-row">
+        <span class="currency-flag">🇹🇼</span>
+        <div class="currency-input-wrap">
+          <span class="currency-unit">NT$</span>
+          <input class="currency-input" id="twdInput" type="number" placeholder="0"
+            style="padding-left:40px" oninput="calcCurrency('twd')">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="rate-note" style="margin:0" id="rateNote">目前匯率</div>
+      <button onclick="fetchLiveRate()" id="refreshRateBtn"
+        style="font-size:11px;background:none;border:1px solid var(--border);border-radius:6px;
+        padding:3px 8px;cursor:pointer;color:var(--muted);font-family:'Noto Sans TC',sans-serif;
+        display:flex;align-items:center;gap:4px;">
+        <span id="refreshIcon">🔄</span> 更新即時匯率
+      </button>
+    </div>
+    <div class="rate-input-row">
+      <span style="font-size:12px;color:var(--muted)">1 JPY =</span>
+      <input class="rate-input" id="rateInput" type="number" value="0.221" step="0.001"
+        oninput="calcCurrency('rate');saveRate()">
+      <span style="font-size:12px;color:var(--muted)">TWD</span>
+    </div>
+    <div id="rateSource" style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px"></div>
+    <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:10px">快速換算</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px" id="quickCalc"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Packing Panel -->
+<div class="slide-panel" id="packPanel">
+  <div class="slide-panel-header">
+    <span class="slide-panel-title">🎒 打包清單</span>
+    <button class="slide-close" onclick="closePanel('packPanel')">✕</button>
+  </div>
+  <div class="slide-panel-body" id="packBody">
+  </div>
+</div>
+
+<!-- Panel Overlay -->
+<div id="panelOverlay" style="display:none;position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.3);backdrop-filter:blur(1px)" onclick="closeAllPanels()"></div>
 
 <!-- Template Modal -->
 <div class="modal-overlay hidden" id="templateModalOverlay">
@@ -934,8 +1124,11 @@ function renderStop(s, dayId, idx, allStops) {
       <div class="stop-icon-select" onclick="openStopEmoji('${s.id}','${dayId}',event)">${s.icon}</div>
     </div>
     <div class="stop-content">
-      <input class="stop-name-input" value="${escA(s.name)}"
-        onchange="updateStop('${dayId}','${s.id}','name',this.value)" placeholder="行程名稱">
+      <div style="display:flex;align-items:center;gap:4px">
+        <input class="stop-name-input" style="flex:1" value="${escA(s.name)}"
+          onchange="updateStop('${dayId}','${s.id}','name',this.value)" placeholder="行程名稱">
+        ${s.name ? `<a class="map-btn" href="https://www.google.com/maps/search/${encodeURIComponent(s.name+' 日本')}" target="_blank" title="在 Google Maps 開啟" onclick="event.stopPropagation()">📍</a>` : ''}
+      </div>
       <textarea class="stop-note-input"
         onchange="updateStop('${dayId}','${s.id}','note',this.value)"
         oninput="autoResize(this)" placeholder="備注：交通方式、提醒…">${esc(s.note)}</textarea>
@@ -1349,6 +1542,229 @@ function applyTemplateToStop(dayId, stopId, t) {
 }
 
 document.addEventListener('click', () => closeAllStopTpls());
+
+
+// ── PANEL CONTROLS ──
+function togglePanel(id) {
+  const panel = document.getElementById(id);
+  const isOpen = panel.classList.contains('open');
+  closeAllPanels();
+  if (!isOpen) {
+    panel.classList.add('open');
+    document.getElementById('panelOverlay').style.display = 'block';
+    if (id === 'packPanel') renderPackList();
+    if (id === 'currencyPanel') {
+    // restore saved rate from cloud data
+    const savedRate = DATA.meta?.customRate;
+    const ri = document.getElementById('rateInput');
+    if (savedRate && ri) ri.value = savedRate;
+    renderQuickCalc();
+    // auto-fetch live rate on first open
+    fetchLiveRate();
+  }
+  }
+}
+function closePanel(id) {
+  document.getElementById(id).classList.remove('open');
+  document.getElementById('panelOverlay').style.display = 'none';
+}
+function closeAllPanels() {
+  document.querySelectorAll('.slide-panel').forEach(p => p.classList.remove('open'));
+  document.getElementById('panelOverlay').style.display = 'none';
+}
+
+// ── CURRENCY ──
+// ── CURRENCY ──
+function getRate() {
+  return parseFloat(document.getElementById('rateInput')?.value)
+    || DATA.meta?.customRate
+    || 0.221;
+}
+
+function saveRate() {
+  if (!DATA.meta) DATA.meta = {};
+  DATA.meta.customRate = getRate();
+  scheduleSave();
+}
+
+async function fetchLiveRate() {
+  const btn = document.getElementById('refreshRateBtn');
+  const icon = document.getElementById('refreshIcon');
+  const note = document.getElementById('rateNote');
+  const src  = document.getElementById('rateSource');
+  if (btn) btn.disabled = true;
+  if (icon) icon.textContent = '⏳';
+  if (note) note.textContent = '抓取中…';
+  try {
+    // frankfurter.app — free, no key needed
+    const res = await fetch('https://api.frankfurter.app/latest?from=JPY&to=TWD');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const rate = data.rates?.TWD;
+    if (!rate) throw new Error('no TWD rate');
+    const rateInput = document.getElementById('rateInput');
+    if (rateInput) rateInput.value = rate.toFixed(4);
+    saveRate();
+    calcCurrency('jpy');
+    const date = data.date || new Date().toLocaleDateString('zh-TW');
+    if (note) note.textContent = '即時匯率 ✓';
+    if (src)  src.textContent  = `資料來源：frankfurter.app・${date}`;
+  } catch(e) {
+    if (note) note.textContent = '目前匯率（手動）';
+    if (src)  src.textContent  = '無法取得即時匯率，請手動輸入';
+  } finally {
+    if (btn)  btn.disabled = false;
+    if (icon) icon.textContent = '🔄';
+  }
+}
+
+function calcCurrency(from) {
+  const rate = getRate();
+  if (from === 'jpy') {
+    const jpy = parseFloat(document.getElementById('jpyInput').value) || 0;
+    const twd = jpy * rate;
+    document.getElementById('twdInput').value = twd ? twd.toFixed(1) : '';
+    document.getElementById('currencyResult').textContent = 'NT$ ' + Math.round(twd).toLocaleString();
+    document.getElementById('currencyResultJpy').textContent = jpy ? '¥' + jpy.toLocaleString() : '';
+  } else if (from === 'twd') {
+    const twd = parseFloat(document.getElementById('twdInput').value) || 0;
+    const jpy = twd / rate;
+    document.getElementById('jpyInput').value = jpy ? Math.round(jpy) : '';
+    document.getElementById('currencyResult').textContent = 'NT$ ' + Math.round(twd).toLocaleString();
+    document.getElementById('currencyResultJpy').textContent = jpy ? '¥' + Math.round(jpy).toLocaleString() : '';
+  } else {
+    calcCurrency('jpy');
+  }
+  renderQuickCalc();
+}
+
+function renderQuickCalc() {
+  const grid = document.getElementById('quickCalc');
+  if (!grid) return;
+  const rate = getRate();
+  const amounts = [500, 1000, 2000, 5000, 10000, 20000, 50000];
+  grid.innerHTML = amounts.map(jpy => `
+    <div style="background:#f5f3ef;border-radius:8px;padding:7px 10px;font-size:11px;cursor:pointer;transition:background .15s"
+      onmouseover="this.style.background='#e8e4dc'" onmouseout="this.style.background='#f5f3ef'"
+      onclick="document.getElementById('jpyInput').value=${jpy};calcCurrency('jpy')">
+      <div style="font-weight:700;color:var(--text)">¥${jpy.toLocaleString()}</div>
+      <div style="color:var(--muted)">NT$${Math.round(jpy * rate).toLocaleString()}</div>
+    </div>
+  `).join('');
+}
+
+// load saved rate when panel opens
+const _origTogglePanel = typeof togglePanel !== 'undefined' ? togglePanel : null;
+
+// ── PACKING LIST ──
+const DEFAULT_PACK = {
+  sections: [
+    { id:'ps1', name:'證件與金融', items:[
+      {id:'pi1',label:'護照',checked:false},
+      {id:'pi2',label:'簽證（電子）',checked:false},
+      {id:'pi3',label:'信用卡',checked:false},
+      {id:'pi4',label:'備用現金',checked:false},
+    ]},
+    { id:'ps2', name:'3C 與充電', items:[
+      {id:'pi5',label:'手機',checked:false},
+      {id:'pi6',label:'充電線',checked:false},
+      {id:'pi7',label:'變壓器／插頭轉換',checked:false},
+      {id:'pi8',label:'行動電源',checked:false},
+      {id:'pi9',label:'相機',checked:false},
+    ]},
+    { id:'ps3', name:'衣物', items:[
+      {id:'pi10',label:'上衣 × 天數',checked:false},
+      {id:'pi11',label:'外套',checked:false},
+      {id:'pi12',label:'內衣褲',checked:false},
+      {id:'pi13',label:'舒適步行鞋',checked:false},
+    ]},
+    { id:'ps4', name:'盥洗與藥品', items:[
+      {id:'pi14',label:'牙刷牙膏',checked:false},
+      {id:'pi15',label:'洗面乳',checked:false},
+      {id:'pi16',label:'防曬乳',checked:false},
+      {id:'pi17',label:'感冒藥',checked:false},
+      {id:'pi18',label:'腸胃藥',checked:false},
+    ]},
+    { id:'ps5', name:'其他', items:[
+      {id:'pi19',label:'Suica / IC 卡',checked:false},
+      {id:'pi20',label:'雨傘',checked:false},
+      {id:'pi21',label:'環保袋',checked:false},
+    ]},
+  ]
+};
+
+function getPackData() {
+  if (!DATA.packing) DATA.packing = JSON.parse(JSON.stringify(DEFAULT_PACK));
+  return DATA.packing;
+}
+
+function renderPackList() {
+  const body = document.getElementById('packBody');
+  if (!body) return;
+  const pack = getPackData();
+  const allItems = pack.sections.flatMap(s => s.items);
+  const checkedCount = allItems.filter(i => i.checked).length;
+  const total = allItems.length;
+  const pct = total ? Math.round(checkedCount / total * 100) : 0;
+
+  let html = `
+    <div class="pack-progress"><div class="pack-progress-bar" style="width:${pct}%"></div></div>
+    <div class="pack-stats">${checkedCount} / ${total} 已確認</div>
+  `;
+
+  pack.sections.forEach(sec => {
+    html += `<div class="pack-section">
+      <div class="pack-section-title">${sec.name}
+        <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none">
+          ${sec.items.filter(i=>i.checked).length}/${sec.items.length}
+        </span>
+      </div>`;
+    sec.items.forEach(item => {
+      html += `<div class="pack-item">
+        <div class="pack-check${item.checked?' checked':''}" onclick="togglePackItem('${sec.id}','${item.id}')"></div>
+        <input class="pack-label${item.checked?' checked-text':''}" value="${escA(item.label)}"
+          onchange="updatePackItem('${sec.id}','${item.id}',this.value)">
+        <button class="pack-del" onclick="deletePackItem('${sec.id}','${item.id}')">✕</button>
+      </div>`;
+    });
+    html += `<div class="pack-add-row">
+      <input class="pack-add-input" id="packinput-${sec.id}" placeholder="新增項目…"
+        onkeydown="if(event.key==='Enter')addPackItem('${sec.id}')">
+      <button class="pack-add-btn" onclick="addPackItem('${sec.id}')">＋</button>
+    </div></div>`;
+  });
+
+  body.innerHTML = html;
+}
+
+window.togglePackItem = (secId, itemId) => {
+  const sec = getPackData().sections.find(s => s.id === secId);
+  if (!sec) return;
+  const item = sec.items.find(i => i.id === itemId);
+  if (item) { item.checked = !item.checked; scheduleSave(); renderPackList(); }
+};
+window.updatePackItem = (secId, itemId, val) => {
+  const sec = getPackData().sections.find(s => s.id === secId);
+  if (!sec) return;
+  const item = sec.items.find(i => i.id === itemId);
+  if (item) { item.label = val; scheduleSave(); }
+};
+window.deletePackItem = (secId, itemId) => {
+  const sec = getPackData().sections.find(s => s.id === secId);
+  if (!sec) return;
+  sec.items = sec.items.filter(i => i.id !== itemId);
+  scheduleSave(); renderPackList();
+};
+window.addPackItem = (secId) => {
+  const input = document.getElementById('packinput-' + secId);
+  const label = input?.value.trim();
+  if (!label) return;
+  const sec = getPackData().sections.find(s => s.id === secId);
+  if (!sec) return;
+  sec.items.push({ id: 'pi' + Date.now(), label, checked: false });
+  input.value = '';
+  scheduleSave(); renderPackList();
+};
 
 // ── FILTER BAR ──
 let activeFilterId = 'all';
