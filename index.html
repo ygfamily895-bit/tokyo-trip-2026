@@ -96,9 +96,18 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .toolbar-label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px}
 .filter-btn{
   padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700;
-  border:1.5px solid transparent;cursor:pointer;background:#f0ede8;color:var(--muted);transition:all .15s;
+  border:1.5px solid transparent;cursor:pointer;background:#f0ede8;color:var(--muted);
+  transition:all .15s;display:inline-flex;align-items:center;gap:4px;
 }
 .filter-btn.active,.filter-btn:hover{background:var(--text);color:#fff}
+.filter-btn.active .filter-btn-label,.filter-btn:hover .filter-btn-label{color:#fff}
+.filter-btn-label{
+  outline:none;border:none;background:transparent;
+  font-size:11px;font-weight:700;font-family:'Noto Sans TC',sans-serif;
+  color:inherit;cursor:pointer;min-width:10px;
+}
+.filter-all{background:#e8e4dc;color:#444}
+.filter-all.active,.filter-all:hover{background:var(--text);color:#fff}
 
 /* ── MAIN ── */
 .main{max-width:880px;margin:0 auto;padding:24px 16px 80px}
@@ -356,16 +365,10 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
     </div>
   </div>
 
-  <div class="toolbar">
-    <span class="toolbar-label">篩選</span>
-    <button class="filter-btn active" onclick="filterDays('all',this)">全部</button>
-    <button class="filter-btn" onclick="filterDays('transit',this)">抵返</button>
-    <button class="filter-btn" onclick="filterDays('tokyo',this)">東京</button>
-    <button class="filter-btn" onclick="filterDays('daytrip',this)">近郊</button>
-    <button class="filter-btn" onclick="filterDays('event',this)">演唱會</button>
-    <button class="filter-btn" onclick="filterDays('yokohama',this)">橫濱</button>
-    <button class="filter-btn" onclick="filterDays('free',this)">待規劃</button>
-    <span style="margin-left:auto;font-size:11px;color:var(--muted)">✏️ 點擊文字直接編輯・拖曳排序・自動雲端同步</span>
+  <div class="toolbar" id="toolbar">
+    <span class="toolbar-label">天數</span>
+    <div id="day-filters" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"></div>
+    <span style="margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap">✏️ 點擊文字直接編輯・拖曳排序・自動雲端同步</span>
   </div>
 
   <div class="main" id="main"></div>
@@ -620,6 +623,8 @@ function render() {
     main.appendChild(sec);
     bindDayEvents(sec, day);
   });
+  renderFilterBar();
+  applyFilter();
 }
 
 function renderDay(day) {
@@ -904,16 +909,64 @@ function selectEmoji(em){
 function closeAllPickers(){document.querySelectorAll('.emoji-picker').forEach(p=>p.remove())}
 document.addEventListener('click',closeAllPickers);
 
-// ── FILTER / COLLAPSE ──
-window.filterDays=(cat,btn)=>{
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  document.querySelectorAll('.day-section').forEach(s=>{
-    const c=s.querySelector('.day-card');
-    if(!c)return;
-    s.style.display=(cat==='all'||c.getAttribute('data-cat')===cat)?'':'none';
+// ── FILTER BAR ──
+let activeFilterId = 'all';
+
+function renderFilterBar() {
+  const bar = document.getElementById('day-filters');
+  if (!bar) return;
+  bar.innerHTML = '';
+
+  // 全部按鈕
+  const allBtn = document.createElement('button');
+  allBtn.className = 'filter-btn filter-all' + (activeFilterId === 'all' ? ' active' : '');
+  allBtn.textContent = '全部';
+  allBtn.onclick = () => { activeFilterId = 'all'; renderFilterBar(); applyFilter(); };
+  bar.appendChild(allBtn);
+
+  // 每天一個按鈕，標籤可編輯
+  DATA.days.forEach(day => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-btn' + (activeFilterId === day.id ? ' active' : '');
+    btn.setAttribute('data-dayid', day.id);
+
+    const label = document.createElement('span');
+    label.className = 'filter-btn-label';
+    label.contentEditable = 'true';
+    label.spellcheck = false;
+    label.textContent = day.num || 'D?';
+    label.title = day.title;
+
+    // 點 label 不觸發 btn 的 onclick
+    label.onclick = e => e.stopPropagation();
+    label.onblur = e => {
+      const val = label.textContent.trim();
+      if (val) {
+        updateDay(day.id, 'num', val);
+        // 同步更新行程卡片上的 day-num
+        const numEl = document.querySelector(`.day-card[data-id="${day.id}"] .day-num`);
+        if (numEl) numEl.textContent = val;
+      } else {
+        label.textContent = day.num;
+      }
+    };
+    label.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); label.blur(); } };
+
+    btn.onclick = () => { activeFilterId = day.id; renderFilterBar(); applyFilter(); };
+    btn.appendChild(label);
+    bar.appendChild(btn);
   });
-};
+}
+
+function applyFilter() {
+  document.querySelectorAll('.day-section').forEach(sec => {
+    const card = sec.querySelector('.day-card');
+    if (!card) return;
+    const id = card.getAttribute('data-id');
+    sec.style.display = (activeFilterId === 'all' || id === activeFilterId) ? '' : 'none';
+  });
+}
+
 window.collapseAll=()=>document.querySelectorAll('.day-card').forEach(c=>c.classList.add('collapsed'));
 
 // ── TOAST ──
