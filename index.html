@@ -89,7 +89,6 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 }
 .cover-subtitle:focus{background:rgba(255,255,255,.08);border-radius:4px;padding:1px 6px}
 .cover-subtitle::placeholder{color:rgba(200,200,220,.4)}
-.cover-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
 .cover-img-btn{
   display:inline-flex;align-items:center;gap:6px;
   padding:7px 13px;border-radius:8px;font-size:11px;font-weight:700;
@@ -422,7 +421,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 <div id="app">
   <!-- COVER -->
   <div class="cover" id="cover">
-    <img class="cover-img" id="coverImg" src="" alt="" style="display:none">
+    <img class="cover-img" id="coverImg" src="https://d1vqr0cheeo2qs.cloudfront.net/zh-hant/articles/title_images/000/027/786/original/pixta_21862331_s.jpg?2019&d=750x400" alt="封面" style="display:block">
     <div class="cover-overlay"></div>
     <div class="cover-body">
       <div class="cover-text">
@@ -431,30 +430,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
         <input class="cover-subtitle" id="coverSubtitle" placeholder="副標題（如年份、日期）" value="2026 JAPAN TRIP"
           onchange="saveMeta()" oninput="saveMeta()">
       </div>
-      <div class="cover-actions">
-        <button class="cover-img-btn" onclick="togglePresetPanel()">🖼 封面圖片</button>
-        <input type="file" id="coverFileInput" accept="image/*" style="display:none" onchange="uploadCoverImage(event)">
-      </div>
     </div>
   </div>
-
-  <!-- PRESET PANEL MODAL -->
-  <div class="cover-preset-panel hidden" id="presetPanel">
-    <div class="preset-inner">
-      <h3>🖼 選擇封面圖片</h3>
-      <div class="preset-section-label">預設照片</div>
-      <div class="preset-grid" id="presetGrid"></div>
-      <div class="preset-section-label">純色背景</div>
-      <div class="preset-grid" id="presetColorGrid"></div>
-      <div class="preset-actions">
-        <button class="cover-img-btn" onclick="event.stopPropagation();document.getElementById('coverFileInput').click()">📁 上傳本機圖片</button>
-        <button class="cover-img-btn" onclick="event.stopPropagation();clearCover()" style="border-color:rgba(255,100,100,.4)">✕ 移除封面</button>
-        <button class="cover-img-btn" onclick="event.stopPropagation();togglePresetPanel()" style="margin-left:auto;background:rgba(255,255,255,.15)">✕ 關閉</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- TOPBAR -->
+<!-- TOPBAR -->
   <div class="topbar">
     <div class="topbar-left">
       <div class="sync-status" id="syncStatus">
@@ -1021,132 +999,16 @@ function closeAllPickers(){document.querySelectorAll('.emoji-picker').forEach(p=
 document.addEventListener('click',closeAllPickers);
 
 // ── COVER & META ──
-const PRESETS = [
-  {label:'東京夜景',   url:'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=900&q=75&auto=format'},
-  {label:'富士山',     url:'https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=900&q=75&auto=format'},
-  {label:'淺草寺',     url:'https://images.unsplash.com/photo-1583400500827-4a73813e9e0c?w=900&q=75&auto=format'},
-  {label:'新幹線',     url:'https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=900&q=75&auto=format'},
-  {label:'櫻花',       url:'https://images.unsplash.com/photo-1522383225653-ed111181a951?w=900&q=75&auto=format'},
-  {label:'渋谷',       url:'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=900&q=75&auto=format'},
-  {label:'秋葉原',     url:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=900&q=75&auto=format'},
-  {label:'和風街道',   url:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=900&q=75&auto=format'},
-  {label:'居酒屋夜晚', url:'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=900&q=75&auto=format'},
-  {label:'深藍漸層',   color:'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)',isGradient:true},
-  {label:'暖橙漸層',   color:'linear-gradient(135deg,#2d1b0e 0%,#7c3a00 50%,#c05c1a 100%)',isGradient:true},
-  {label:'森林綠',     color:'linear-gradient(135deg,#0d2616 0%,#1a4a2e 50%,#2d6a4f 100%)',isGradient:true},
-];
 
-function renderPresetGrid() {
-  const photoGrid = document.getElementById('presetGrid');
-  const colorGrid = document.getElementById('presetColorGrid');
-  if (!photoGrid || !colorGrid) return;
-  photoGrid.innerHTML = '';
-  colorGrid.innerHTML = '';
-  const currentUrl = DATA.meta?.coverUrl || '';
-  PRESETS.forEach(p => {
-    const val = p.color || p.url;
-    const isActive = currentUrl === val;
-    const wrap = document.createElement('div');
-    wrap.className = 'preset-swatch-wrap' + (isActive ? ' active' : '');
-    const sw = document.createElement('div');
-    sw.className = 'preset-swatch' + (isActive ? ' active' : '');
-    if (p.url) {
-      const img = document.createElement('img');
-      img.src = p.url; img.alt = p.label;
-      sw.appendChild(img);
-    } else {
-      const div = document.createElement('div');
-      div.className = 'preset-swatch-color';
-      div.style.background = p.color;
-      sw.appendChild(div);
-    }
-    const name = document.createElement('div');
-    name.className = 'preset-swatch-name';
-    name.textContent = p.label;
-    wrap.appendChild(sw);
-    wrap.appendChild(name);
-    wrap.addEventListener('click', function(e) {
-      e.stopPropagation();
-      e.preventDefault();
-      setCover(val, !!p.isGradient);
-    });
-    if (p.isGradient) colorGrid.appendChild(wrap);
-    else photoGrid.appendChild(wrap);
-  });
-}
 
-function setCover(urlOrGradient, isGradient) {
-  if (!DATA.meta) DATA.meta = {};
-  DATA.meta.coverUrl = urlOrGradient;
-  DATA.meta.coverIsGradient = isGradient;
-  applyCover();
-  renderPresetGrid();
-  scheduleSave();
-  document.getElementById('presetPanel').classList.add('hidden');
-}
 
 function applyCover() {
   const meta = DATA.meta || {};
-  const coverEl = document.getElementById('cover');
-  const imgEl = document.getElementById('coverImg');
-  if (meta.coverUrl) {
-    if (meta.coverIsGradient) {
-      imgEl.style.display = 'none';
-      coverEl.style.background = meta.coverUrl;
-    } else {
-      imgEl.src = meta.coverUrl;
-      imgEl.style.display = 'block';
-      coverEl.style.background = '#1a1a2e';
-    }
-  } else {
-    imgEl.style.display = 'none';
-    coverEl.style.background = '#1a1a2e';
-  }
   if (meta.title !== undefined)
     document.getElementById('coverTitle').value = meta.title;
   if (meta.subtitle !== undefined)
     document.getElementById('coverSubtitle').value = meta.subtitle;
 }
-
-function saveMeta() {
-  if (!DATA.meta) DATA.meta = {};
-  DATA.meta.title = document.getElementById('coverTitle').value;
-  DATA.meta.subtitle = document.getElementById('coverSubtitle').value;
-  scheduleSave();
-}
-
-function togglePresetPanel() {
-  const p = document.getElementById('presetPanel');
-  const opening = p.classList.contains('hidden');
-  p.classList.toggle('hidden');
-  if (opening) renderPresetGrid();
-}
-
-function clearCover() {
-  if (!DATA.meta) DATA.meta = {};
-  DATA.meta.coverUrl = '';
-  DATA.meta.coverIsGradient = false;
-  applyCover();
-  renderPresetGrid();
-  scheduleSave();
-  document.getElementById('presetPanel').classList.add('hidden');
-}
-
-function uploadCoverImage(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => { setCover(ev.target.result, false); };
-  reader.readAsDataURL(file);
-  e.target.value = '';
-}
-
-// close panel when clicking the dark overlay background (not the inner card)
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('presetPanel').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.add('hidden');
-  });
-});
 
 // ── FILTER BAR ──
 let activeFilterId = 'all';
