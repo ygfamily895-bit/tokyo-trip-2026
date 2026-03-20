@@ -27,15 +27,25 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .login-card .logo{font-size:42px;margin-bottom:16px}
 .login-card h1{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;color:#1e1d1a;margin-bottom:6px}
 .login-card p{font-size:13px;color:#888;margin-bottom:32px}
-.google-btn{
-  display:flex;align-items:center;justify-content:center;gap:12px;
-  width:100%;padding:14px 20px;border-radius:12px;border:1.5px solid #e0ddd6;
-  background:#fff;color:#1e1d1a;font-size:14px;font-weight:700;cursor:pointer;
-  font-family:'Noto Sans TC',sans-serif;transition:all .2s;
+.pw-form{display:flex;flex-direction:column;gap:12px;width:100%}
+.pw-input{
+  width:100%;padding:13px 16px;border-radius:12px;
+  border:1.5px solid #e0ddd6;font-size:15px;
+  font-family:'Noto Sans TC',sans-serif;color:#1e1d1a;
+  outline:none;text-align:center;letter-spacing:3px;
+  transition:border-color .2s;background:#fafaf8;
 }
-.google-btn:hover{background:#f8f6f2;border-color:#c8c4bc;box-shadow:0 4px 16px rgba(0,0,0,.1)}
-.google-btn svg{width:20px;height:20px;flex-shrink:0}
-.login-note{font-size:11px;color:#aaa;margin-top:20px}
+.pw-input:focus{border-color:#c84b31;background:#fff}
+.pw-input::placeholder{letter-spacing:0;color:#bbb;font-size:13px}
+.pw-btn{
+  width:100%;padding:14px;border-radius:12px;border:none;
+  background:#c84b31;color:#fff;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;
+}
+.pw-btn:hover{background:#a83a22}
+.pw-btn:disabled{background:#ccc;cursor:not-allowed}
+.pw-error{font-size:12px;color:#c84b31;min-height:18px;text-align:center}
+.login-note{font-size:11px;color:#aaa;margin-top:16px}
 
 /* ── LOADING ── */
 #loading-screen{
@@ -132,8 +142,6 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 }
 .topbar-left{display:flex;align-items:center;gap:10px}
 .user-info{display:flex;align-items:center;gap:8px}
-.user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2)}
-.user-name{font-size:12px;color:#c0c0d8}
 .topbar-right{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
 
 
@@ -402,12 +410,14 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   <div class="login-card">
     <div class="logo">🗼</div>
     <h1>東京獨旅 2026</h1>
-    <p>登入後即可在所有裝置查看與編輯行程</p>
-    <button class="google-btn" id="loginBtn">
-      <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
-      使用 Google 帳號登入
-    </button>
-    <p class="login-note">行程資料僅供你本人存取，不與他人共享</p>
+    <p>輸入密碼以查看與編輯行程</p>
+    <div class="pw-form">
+      <input class="pw-input" type="password" id="pwInput" placeholder="輸入密碼"
+        onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="pw-error" id="pwError"></div>
+      <button class="pw-btn" id="loginBtn" onclick="doLogin()">進入行程</button>
+    </div>
+    <p class="login-note">忘記密碼請聯絡行程擁有人</p>
   </div>
 </div>
 
@@ -439,10 +449,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
         <div class="sync-dot"></div>
         <span id="syncText">已同步</span>
       </div>
-      <div class="user-info">
-        <img class="user-avatar" id="userAvatar" src="" alt="">
-        <span class="user-name" id="userName"></span>
-      </div>
+
     </div>
     <div class="topbar-right">
       <button class="btn btn-secondary" onclick="addDay()">＋ 新增天數</button>
@@ -496,8 +503,6 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot }
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
@@ -512,8 +517,13 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getFirestore(app);
+
+// ── PASSWORD CONFIG ──
+// SHA-256 hash of your password. Generate at: https://emn178.github.io/online-tools/sha256.html
+// Default password: tokyo2026  (change this before deploying!)
+const PASSWORD_HASH = 'fd4414844be7c82312586284eba94e25699b679d69e878160c4eec4df391ce9c'; // 預設密碼：tokyo2026
+const TRIP_DOC_ID = 'main-trip';
 
 const EMOJIS = ['⛩️','🗼','🌸','🛍️','🍜','🎌','🏯','🚆','✈️','🌊','🎤','🎡','🎎','🏮','🍣','🎶','🗽','🛒','🏨','🌿','🎠','🏗️','🥩','⚡','🎮','🌈','🧸','💊','🌙','🍡','🔔','🌺','☕','🎨','🎯','🪔'];
 
@@ -594,50 +604,62 @@ const DEFAULT_DATA = {meta:{title:'✈ 東京獨旅行程',subtitle:'2026 JAPAN 
 ]};
 
 let DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
-let currentUser = null;
 let saveTimer = null;
 let unsubscribe = null;
 let isFirstLoad = true;
 
 // ── AUTH ──
-document.getElementById('loginBtn').onclick = async () => {
-  try {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-  } catch(e) {
-    toast('登入失敗：' + e.message);
-  }
-};
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
 
-window.signOut = async () => {
-  if (unsubscribe) unsubscribe();
-  await fbSignOut(auth);
-};
-
-onAuthStateChanged(auth, async user => {
-  if (user) {
-    currentUser = user;
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('loading-screen').classList.remove('hidden');
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('userAvatar').src = user.photoURL || '';
-    document.getElementById('userName').textContent = user.displayName || user.email;
-    await loadData();
-    document.getElementById('loading-screen').classList.add('hidden');
-    document.getElementById('app').style.display = 'block';
-    subscribeToChanges();
+window.doLogin = async () => {
+  const pw = document.getElementById('pwInput').value;
+  const errEl = document.getElementById('pwError');
+  const btn = document.getElementById('loginBtn');
+  if (!pw) { errEl.textContent = '請輸入密碼'; return; }
+  btn.disabled = true;
+  btn.textContent = '驗證中…';
+  const hash = await sha256(pw);
+  if (hash === PASSWORD_HASH) {
+    errEl.textContent = '';
+    sessionStorage.setItem('trip_auth', '1');
+    showApp();
   } else {
-    currentUser = null;
-    document.getElementById('login-screen').classList.remove('hidden');
-    document.getElementById('loading-screen').classList.add('hidden');
-    document.getElementById('app').style.display = 'none';
-    if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+    errEl.textContent = '密碼錯誤，請再試一次';
+    btn.disabled = false;
+    btn.textContent = '進入行程';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
   }
-});
+};
+
+window.signOut = () => {
+  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  sessionStorage.removeItem('trip_auth');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('app').style.display = 'none';
+};
+
+async function showApp() {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('loading-screen').classList.remove('hidden');
+  document.getElementById('app').style.display = 'none';
+  await loadData();
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('app').style.display = 'block';
+  subscribeToChanges();
+}
+
+// auto-login if session still valid
+if (sessionStorage.getItem('trip_auth') === '1') {
+  showApp();
+}
 
 async function loadData() {
   try {
-    const ref = doc(db, 'trips', currentUser.uid);
+    const ref = doc(db, 'trips', TRIP_DOC_ID);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       DATA = snap.data();
@@ -656,8 +678,7 @@ async function loadData() {
 }
 
 function subscribeToChanges() {
-  if (!currentUser) return;
-  const ref = doc(db, 'trips', currentUser.uid);
+  const ref = doc(db, 'trips', TRIP_DOC_ID);
   unsubscribe = onSnapshot(ref, snap => {
     if (snap.exists() && !isFirstLoad) {
       const remote = snap.data();
@@ -673,10 +694,9 @@ function subscribeToChanges() {
 }
 
 async function saveToFirestore() {
-  if (!currentUser) return;
   setSyncStatus('saving');
   try {
-    await setDoc(doc(db, 'trips', currentUser.uid), DATA);
+    await setDoc(doc(db, 'trips', TRIP_DOC_ID), DATA);
     setSyncStatus('synced');
   } catch(e) {
     setSyncStatus('error');
