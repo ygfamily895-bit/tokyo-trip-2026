@@ -52,7 +52,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 /* ── COVER ── */
 .cover{
   position:relative;min-height:200px;
-  background:#1a1a2e;overflow:hidden;
+  background:#1a1a2e;
   display:flex;flex-direction:column;justify-content:flex-end;
 }
 .cover-img{
@@ -97,23 +97,33 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   color:#fff;cursor:pointer;transition:all .2s;font-family:'Noto Sans TC',sans-serif;
 }
 .cover-img-btn:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.5)}
-/* preset picker */
+/* preset picker - fixed overlay */
 .cover-preset-panel{
-  position:absolute;bottom:0;left:0;right:0;z-index:50;
-  background:rgba(15,15,30,.96);backdrop-filter:blur(8px);
-  padding:16px 20px;border-top:1px solid rgba(255,255,255,.1);
-  transition:transform .25s;
+  position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;
+  background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
 }
 .cover-preset-panel.hidden{display:none}
-.preset-grid{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.preset-inner{
+  background:#1a1a2e;border-radius:16px;padding:24px;
+  width:100%;max-width:640px;max-height:90vh;overflow-y:auto;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+}
+.preset-inner h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:16px;letter-spacing:.5px}
+.preset-section-label{font-size:10px;color:rgba(200,200,220,.6);letter-spacing:.8px;font-weight:700;text-transform:uppercase;margin:14px 0 8px}
+.preset-grid{display:flex;gap:10px;flex-wrap:wrap}
+.preset-swatch-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
 .preset-swatch{
-  width:72px;height:44px;border-radius:8px;cursor:pointer;
+  width:80px;height:50px;border-radius:8px;cursor:pointer;
   border:2px solid transparent;transition:all .15s;overflow:hidden;
   flex-shrink:0;
 }
 .preset-swatch:hover,.preset-swatch.active{border-color:#fff;transform:scale(1.05)}
-.preset-swatch img{width:100%;height:100%;object-fit:cover}
+.preset-swatch img{width:100%;height:100%;object-fit:cover;display:block}
 .preset-swatch-color{width:100%;height:100%}
+.preset-swatch-name{font-size:10px;color:rgba(200,200,220,.7);text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.preset-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
 .preset-label{font-size:10px;color:rgba(200,200,220,.7);margin-bottom:6px;letter-spacing:.5px;font-weight:700}
 /* ── TOPBAR ── */
 .topbar{
@@ -426,14 +436,20 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
         <input type="file" id="coverFileInput" accept="image/*" style="display:none" onchange="uploadCoverImage(event)">
       </div>
     </div>
-    <!-- PRESET PANEL -->
-    <div class="cover-preset-panel hidden" id="presetPanel" onclick="event.stopPropagation()">
-      <div class="preset-label">選擇預設封面</div>
+  </div>
+
+  <!-- PRESET PANEL MODAL -->
+  <div class="cover-preset-panel hidden" id="presetPanel">
+    <div class="preset-inner">
+      <h3>🖼 選擇封面圖片</h3>
+      <div class="preset-section-label">預設照片</div>
       <div class="preset-grid" id="presetGrid"></div>
-      <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+      <div class="preset-section-label">純色背景</div>
+      <div class="preset-grid" id="presetColorGrid"></div>
+      <div class="preset-actions">
         <button class="cover-img-btn" onclick="event.stopPropagation();document.getElementById('coverFileInput').click()">📁 上傳本機圖片</button>
         <button class="cover-img-btn" onclick="event.stopPropagation();clearCover()" style="border-color:rgba(255,100,100,.4)">✕ 移除封面</button>
-        <button class="cover-img-btn" onclick="event.stopPropagation();togglePresetPanel()" style="margin-left:auto">關閉</button>
+        <button class="cover-img-btn" onclick="event.stopPropagation();togglePresetPanel()" style="margin-left:auto;background:rgba(255,255,255,.15)">✕ 關閉</button>
       </div>
     </div>
   </div>
@@ -1021,41 +1037,41 @@ const PRESETS = [
 ];
 
 function renderPresetGrid() {
-  const grid = document.getElementById('presetGrid');
-  if (!grid) return;
-  grid.innerHTML = '';
+  const photoGrid = document.getElementById('presetGrid');
+  const colorGrid = document.getElementById('presetColorGrid');
+  if (!photoGrid || !colorGrid) return;
+  photoGrid.innerHTML = '';
+  colorGrid.innerHTML = '';
   const currentUrl = DATA.meta?.coverUrl || '';
   PRESETS.forEach(p => {
     const val = p.color || p.url;
+    const isActive = currentUrl === val;
+    const wrap = document.createElement('div');
+    wrap.className = 'preset-swatch-wrap' + (isActive ? ' active' : '');
     const sw = document.createElement('div');
-    sw.className = 'preset-swatch' + (currentUrl === val ? ' active' : '');
-    sw.title = p.label;
+    sw.className = 'preset-swatch' + (isActive ? ' active' : '');
     if (p.url) {
       const img = document.createElement('img');
-      img.src = p.url;
-      img.alt = p.label;
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+      img.src = p.url; img.alt = p.label;
       sw.appendChild(img);
     } else {
       const div = document.createElement('div');
       div.className = 'preset-swatch-color';
       div.style.background = p.color;
-      div.style.width = '100%';
-      div.style.height = '100%';
       sw.appendChild(div);
     }
-    const label = document.createElement('div');
-    label.textContent = p.label;
-    label.style.cssText = 'font-size:9px;color:rgba(200,200,220,.7);text-align:center;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:72px';
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer';
+    const name = document.createElement('div');
+    name.className = 'preset-swatch-name';
+    name.textContent = p.label;
     wrap.appendChild(sw);
-    wrap.appendChild(label);
-    wrap.onclick = e => {
+    wrap.appendChild(name);
+    wrap.addEventListener('click', function(e) {
       e.stopPropagation();
+      e.preventDefault();
       setCover(val, !!p.isGradient);
-    };
-    grid.appendChild(wrap);
+    });
+    if (p.isGradient) colorGrid.appendChild(wrap);
+    else photoGrid.appendChild(wrap);
   });
 }
 
@@ -1066,10 +1082,7 @@ function setCover(urlOrGradient, isGradient) {
   applyCover();
   renderPresetGrid();
   scheduleSave();
-  // close panel after a short delay so user sees selection
-  setTimeout(() => {
-    document.getElementById('presetPanel').classList.add('hidden');
-  }, 300);
+  document.getElementById('presetPanel').classList.add('hidden');
 }
 
 function applyCover() {
@@ -1104,8 +1117,9 @@ function saveMeta() {
 
 function togglePresetPanel() {
   const p = document.getElementById('presetPanel');
+  const opening = p.classList.contains('hidden');
   p.classList.toggle('hidden');
-  if (!p.classList.contains('hidden')) renderPresetGrid();
+  if (opening) renderPresetGrid();
 }
 
 function clearCover() {
@@ -1122,20 +1136,16 @@ function uploadCoverImage(e) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = ev => {
-    setCover(ev.target.result, false);
-  };
+  reader.onload = ev => { setCover(ev.target.result, false); };
   reader.readAsDataURL(file);
+  e.target.value = '';
 }
 
-// close preset panel only when clicking outside the entire cover div
-document.addEventListener('click', e => {
-  const panel = document.getElementById('presetPanel');
-  if (!panel || panel.classList.contains('hidden')) return;
-  const cover = document.getElementById('cover');
-  if (!cover.contains(e.target)) {
-    panel.classList.add('hidden');
-  }
+// close panel when clicking the dark overlay background (not the inner card)
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('presetPanel').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('hidden');
+  });
 });
 
 // ── FILTER BAR ──
