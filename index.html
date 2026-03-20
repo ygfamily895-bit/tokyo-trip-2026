@@ -642,9 +642,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
     <p>輸入密碼以查看與編輯行程</p>
     <div class="pw-form">
       <input class="pw-input" type="password" id="pwInput" placeholder="輸入密碼"
-        onkeydown="if(event.key==='Enter')doLogin()">
+       >
       <div class="pw-error" id="pwError"></div>
-      <button class="pw-btn" id="loginBtn" onclick="doLogin()">進入行程</button>
+      <button class="pw-btn" id="loginBtn">進入行程</button>
     </div>
     <p class="login-note">忘記密碼請聯絡行程擁有人</p>
   </div>
@@ -956,6 +956,12 @@ window.doLogin = async () => {
     btn.textContent = '進入行程';
   }
 };
+
+// Bind login button after doLogin is defined
+document.getElementById('loginBtn').addEventListener('click', () => window.doLogin());
+document.getElementById('pwInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') window.doLogin();
+});
 
 window.signOut = () => {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
