@@ -371,6 +371,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   background:#f5f3ef;border-radius:6px;padding:3px 8px;
   font-size:11.5px;
 }
+.budget-item.twd-item{background:#eaf4ff}
 .budget-label{color:var(--muted);font-size:10px}
 .budget-amount{
   font-weight:700;color:var(--text);
@@ -380,6 +381,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 }
 .budget-amount:focus{background:#ebe8e0;border-radius:3px;padding:0 3px}
 .budget-currency{font-size:10px;color:var(--muted)}
+.budget-divider{color:#ccc;font-size:12px;user-select:none}
 .day-budget-total{
   display:flex;align-items:center;gap:6px;
   padding:6px 4px 2px;border-top:1px dashed #ece8e0;margin-top:6px;
@@ -1055,8 +1057,12 @@ function renderDay(day) {
   const isToday = checkIsToday(day);
   const dayTotal = calcDayBudget(day);
   const todayBadge = isToday ? '<span class="today-badge">📍 今天</span>' : '';
-  const budgetTotal = dayTotal > 0
-    ? `<div class="day-budget-total">當日小計 <strong>¥${dayTotal.toLocaleString()}</strong><span class="trip-budget-jpy"> ≈ NT$${Math.round(dayTotal/4.5).toLocaleString()}</span></div>`
+  const dayTwd = calcDayBudgetTwd(day);
+  const budgetTotal = (dayTotal > 0 || dayTwd > 0)
+    ? `<div class="day-budget-total">當日小計
+        <strong>¥${dayTotal.toLocaleString()}</strong>
+        <span style="color:#1a73e8;font-weight:700;font-size:12px">NT$${dayTwd.toLocaleString()}</span>
+       </div>`
     : '';
   return `<div class="day-card${isToday?' is-today':''}" data-cat="${day.cat}" data-id="${day.id}">
     <div class="day-header" onclick="toggleCollapse('${day.id}',event)">
@@ -1095,15 +1101,27 @@ function renderDay(day) {
 
 function renderStop(s, dayId, idx, allStops) {
   const stopFields = (s.fields||[]).map(f => renderStopField(f, s.id, dayId)).join('');
-  const budgetVal = s.budget != null ? s.budget : '';
+  const budgetJpy = s.budget != null ? s.budget : '';
+  const budgetTwd = s.budgetTwd != null ? s.budgetTwd : '';
   const budgetRow = `<div class="budget-row">
     <div class="budget-item">
       <span class="budget-label">¥</span>
-      <input class="budget-amount" type="number" min="0" value="${budgetVal}"
-        placeholder="費用"
-        onchange="updateStop('${dayId}','${s.id}','budget',this.value===''?null:Number(this.value));renderBudgets()"
+      <input class="budget-amount" type="number" min="0" value="${budgetJpy}"
+        placeholder="日圓"
+        id="jpy-${s.id}"
+        onchange="onBudgetChange('${dayId}','${s.id}','jpy',this.value)"
         onclick="event.stopPropagation()" title="輸入日圓金額">
       <span class="budget-currency">JPY</span>
+    </div>
+    <span class="budget-divider">⇄</span>
+    <div class="budget-item twd-item">
+      <span class="budget-label" style="color:#1a73e8">NT$</span>
+      <input class="budget-amount" type="number" min="0" value="${budgetTwd}"
+        placeholder="台幣"
+        id="twd-${s.id}"
+        onchange="onBudgetChange('${dayId}','${s.id}','twd',this.value)"
+        onclick="event.stopPropagation()" title="輸入台幣金額">
+      <span class="budget-currency" style="color:#1a73e8">TWD</span>
     </div>
   </div>`;
   // transit row: show between stops (after this stop, before next)
@@ -1396,28 +1414,94 @@ function checkIsToday(day) {
 }
 
 // ── BUDGET ──
+// ── BUDGET HELPERS ──
+function getLiveRate() {
+  // use saved custom rate if available, otherwise fallback
+  return DATA.meta?.customRate || 0.221;
+}
+
+// Called when user types in either JPY or TWD budget field
+window.onBudgetChange = (dayId, stopId, currency, rawVal) => {
+  const d = DATA.days.find(x => x.id === dayId);
+  if (!d) return;
+  const s = d.stops.find(x => x.id === stopId);
+  if (!s) return;
+  const val = rawVal === '' ? null : Number(rawVal);
+  const rate = getLiveRate();
+  if (currency === 'jpy') {
+    s.budget = val;
+    // auto-fill TWD
+    const twdEl = document.getElementById('twd-' + stopId);
+    if (twdEl) {
+      if (val != null) {
+        const twd = Math.round(val * rate);
+        twdEl.value = twd;
+        s.budgetTwd = twd;
+      } else {
+        twdEl.value = '';
+        s.budgetTwd = null;
+      }
+    }
+  } else {
+    s.budgetTwd = val;
+    // auto-fill JPY
+    const jpyEl = document.getElementById('jpy-' + stopId);
+    if (jpyEl) {
+      if (val != null) {
+        const jpy = Math.round(val / rate);
+        jpyEl.value = jpy;
+        s.budget = jpy;
+      } else {
+        jpyEl.value = '';
+        s.budget = null;
+      }
+    }
+  }
+  scheduleSave();
+  renderBudgets();
+};
+
 function calcDayBudget(day) {
-  return (day.stops || []).reduce((sum, s) => sum + (s.budget ? Number(s.budget) : 0), 0);
+  // prefer JPY; if only TWD available, convert
+  return (day.stops || []).reduce((sum, s) => {
+    if (s.budget != null) return sum + Number(s.budget);
+    if (s.budgetTwd != null) return sum + Math.round(Number(s.budgetTwd) / getLiveRate());
+    return sum;
+  }, 0);
+}
+
+function calcDayBudgetTwd(day) {
+  const rate = getLiveRate();
+  return (day.stops || []).reduce((sum, s) => {
+    if (s.budgetTwd != null) return sum + Number(s.budgetTwd);
+    if (s.budget != null) return sum + Math.round(Number(s.budget) * rate);
+    return sum;
+  }, 0);
 }
 
 function calcTripBudget() {
   return DATA.days.reduce((sum, day) => sum + calcDayBudget(day), 0);
 }
 
+function calcTripBudgetTwd() {
+  return DATA.days.reduce((sum, day) => sum + calcDayBudgetTwd(day), 0);
+}
+
 function renderBudgets() {
-  const total = calcTripBudget();
+  const totalJpy = calcTripBudget();
+  const totalTwd = calcTripBudgetTwd();
   const bar = document.getElementById('tripBudgetBar');
   if (!bar) return;
-  if (total === 0) {
+  if (totalJpy === 0 && totalTwd === 0) {
     bar.style.display = 'none';
     return;
   }
   bar.style.display = 'flex';
   bar.innerHTML = `
     <span class="trip-budget-label">旅程總花費</span>
-    <span class="trip-budget-amount">¥${total.toLocaleString()}</span>
-    <span class="trip-budget-jpy">≈ NT$${Math.round(total / 4.5).toLocaleString()}</span>
-    <span style="margin-left:auto;font-size:10px;color:var(--muted)">匯率 1 JPY ≈ 0.22 TWD（可自行調整）</span>
+    <span class="trip-budget-amount">¥${totalJpy.toLocaleString()}</span>
+    <span class="trip-budget-jpy" style="font-size:13px;color:#1a73e8;font-weight:700">NT$${totalTwd.toLocaleString()}</span>
+    <span style="margin-left:auto;font-size:10px;color:var(--muted)">匯率 1 JPY = ${getLiveRate().toFixed(3)} TWD</span>
   `;
 }
 
