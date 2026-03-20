@@ -432,6 +432,34 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .template-btn .t-icon{font-size:20px}
 .template-btn .t-name{font-size:11px;font-weight:700;color:var(--text)}
 
+
+/* ── STOP TEMPLATE PICKER ── */
+.stop-template-wrap{position:relative;display:inline-block}
+
+.stop-template-dropdown{
+  position:absolute;bottom:calc(100% + 6px);left:0;z-index:300;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);
+  overflow:hidden;width:230px;
+}
+.stop-template-dropdown.hidden{display:none}
+.stop-tpl-header{
+  font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);
+  padding:8px 12px 4px;text-transform:uppercase;
+}
+.stop-tpl-item{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 12px;cursor:pointer;
+  font-size:12px;font-family:'Noto Sans TC',sans-serif;
+  color:var(--text);transition:background .1s;width:100%;
+  background:none;border:none;text-align:left;border-bottom:1px solid var(--border);
+}
+.stop-tpl-item:last-child{border-bottom:none}
+.stop-tpl-item:hover{background:#f0ede8}
+.stop-tpl-item:hover .tpl-name{color:var(--accent2)}
+.stop-tpl-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.tpl-name{font-weight:700;flex:1}
+.tpl-fields{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
 /* ── EMOJI PICKER ── */
 .emoji-picker{
   position:absolute;z-index:200;left:0;top:32px;
@@ -614,8 +642,8 @@ const db = getFirestore(app);
 
 // ── PASSWORD CONFIG ──
 // SHA-256 hash of your password. Generate at: https://emn178.github.io/online-tools/sha256.html
-// Default password: tokyo2026  (change this before deploying!)
-const PASSWORD_HASH = 'fd4414844be7c82312586284eba94e25699b679d69e878160c4eec4df391ce9c'; // 預設密碼：tokyo2026
+
+const PASSWORD_HASH = 'fd4414844be7c82312586284eba94e25699b679d69e878160c4eec4df391ce9c';
 const TRIP_DOC_ID = 'main-trip';
 
 const EMOJIS = ['⛩️','🗼','🌸','🛍️','🍜','🎌','🏯','🚆','✈️','🌊','🎤','🎡','🎎','🏮','🍣','🎶','🗽','🛒','🏨','🌿','🎠','🏗️','🥩','⚡','🎮','🌈','🧸','💊','🌙','🍡','🔔','🌺','☕','🎨','🎯','🪔'];
@@ -918,7 +946,10 @@ function renderStop(s, dayId, idx, allStops) {
     <div class="stop-extra">
       ${budgetRow}
       ${stopFields}
-      <button class="add-stop-field-btn" onclick="addStopField('${dayId}','${s.id}')">＋ 新增欄位</button>
+      <div class="stop-template-wrap" id="tplwrap-${s.id}" style="position:relative">
+        <button class="add-stop-field-btn" onclick="toggleStopTpl('${s.id}','${dayId}',event)">＋ 新增欄位</button>
+        <div class="stop-template-dropdown hidden" id="tpldrop-${s.id}"></div>
+      </div>
     </div>
   </li>${transitRow}`;
 }
@@ -1260,10 +1291,64 @@ function applyTemplate(t) {
   }, 60);
 }
 
-  
 document.getElementById('templateModalOverlay').addEventListener('click', e => {
   if (e.target === document.getElementById('templateModalOverlay')) closeTemplateModal();
 });
+
+
+// ── STOP-LEVEL TEMPLATE PICKER ──
+
+window.toggleStopTpl = (stopId, dayId, e) => {
+  e.stopPropagation();
+  const drop = document.getElementById('tpldrop-' + stopId);
+  if (!drop) return;
+  const isHidden = drop.classList.contains('hidden');
+  closeAllStopTpls();
+  if (!isHidden) return; // toggle off
+  // Build menu fresh each time
+  drop.innerHTML = '<div class="stop-tpl-header">選擇範本類型</div>';
+  TEMPLATES.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'stop-tpl-item';
+    const fieldNames = t.fields.length
+      ? t.fields.map(f => f.label).join('・')
+      : '不加欄位';
+    btn.innerHTML = `<span class="stop-tpl-icon">${t.icon}</span>
+      <span class="tpl-name">${t.name}</span>
+      <span class="tpl-fields">${fieldNames}</span>`;
+    btn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      applyTemplateToStop(dayId, stopId, t);
+      drop.classList.add('hidden');
+    });
+    drop.appendChild(btn);
+  });
+  drop.classList.remove('hidden');
+};
+
+function closeAllStopTpls() {
+  document.querySelectorAll('.stop-template-dropdown').forEach(d => d.classList.add('hidden'));
+}
+
+function applyTemplateToStop(dayId, stopId, t) {
+  const d = DATA.days.find(x => x.id === dayId);
+  if (!d) return;
+  const s = d.stops.find(x => x.id === stopId);
+  if (!s) return;
+  if (!s.fields) s.fields = [];
+  // append fields (skip if label already exists)
+  const existingLabels = s.fields.map(f => f.label);
+  t.fields.forEach((f, i) => {
+    if (!existingLabels.includes(f.label)) {
+      s.fields.push({ id: 'sf' + (Date.now() + i), label: f.label, body: f.body });
+    }
+  });
+  render();
+  scheduleSave();
+  toast(`已套用「${t.name}」範本`);
+}
+
+document.addEventListener('click', () => closeAllStopTpls());
 
 // ── FILTER BAR ──
 let activeFilterId = 'all';
