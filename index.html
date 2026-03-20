@@ -49,20 +49,85 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 #app{display:none}
 
 /* ── HEADER ── */
-.header{
-  background:#1a1a2e;color:#fff;padding:16px 28px;
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
-  position:sticky;top:0;z-index:100;
+/* ── COVER ── */
+.cover{
+  position:relative;min-height:200px;
+  background:#1a1a2e;overflow:hidden;
+  display:flex;flex-direction:column;justify-content:flex-end;
 }
-.header-left{display:flex;align-items:center;gap:14px}
-.header-left h1{font-family:'DM Serif Display',serif;font-size:20px;font-weight:400}
-.header-left .subtitle{font-size:11px;color:#8888aa}
-.user-info{display:flex;align-items:center;gap:10px}
-.user-avatar{width:32px;height:32px;border-radius:50%;border:2px solid rgba(255,255,255,.2)}
+.cover-img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;opacity:0.45;pointer-events:none;
+  transition:opacity .4s;
+}
+.cover-overlay{
+  position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(10,10,30,0.1) 0%,rgba(10,10,30,0.75) 100%);
+  pointer-events:none;
+}
+.cover-body{
+  position:relative;z-index:2;
+  padding:28px 28px 20px;
+  display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;
+}
+.cover-text{flex:1;min-width:0}
+.cover-title{
+  font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;color:#fff;
+  outline:none;background:transparent;border:none;width:100%;
+  text-shadow:0 1px 8px rgba(0,0,0,.5);cursor:text;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cover-title:focus{
+  background:rgba(255,255,255,.1);border-radius:6px;
+  padding:2px 8px;text-overflow:clip;
+}
+.cover-title::placeholder{color:rgba(255,255,255,.4)}
+.cover-subtitle{
+  font-size:12px;color:rgba(200,200,220,.85);margin-top:4px;
+  outline:none;background:transparent;border:none;width:100%;
+  cursor:text;letter-spacing:.5px;
+}
+.cover-subtitle:focus{background:rgba(255,255,255,.08);border-radius:4px;padding:1px 6px}
+.cover-subtitle::placeholder{color:rgba(200,200,220,.4)}
+.cover-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+.cover-img-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:7px 13px;border-radius:8px;font-size:11px;font-weight:700;
+  border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);
+  color:#fff;cursor:pointer;transition:all .2s;font-family:'Noto Sans TC',sans-serif;
+}
+.cover-img-btn:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.5)}
+/* preset picker */
+.cover-preset-panel{
+  position:absolute;bottom:0;left:0;right:0;z-index:50;
+  background:rgba(15,15,30,.96);backdrop-filter:blur(8px);
+  padding:16px 20px;border-top:1px solid rgba(255,255,255,.1);
+  transition:transform .25s;
+}
+.cover-preset-panel.hidden{display:none}
+.preset-grid{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.preset-swatch{
+  width:72px;height:44px;border-radius:8px;cursor:pointer;
+  border:2px solid transparent;transition:all .15s;overflow:hidden;
+  flex-shrink:0;
+}
+.preset-swatch:hover,.preset-swatch.active{border-color:#fff;transform:scale(1.05)}
+.preset-swatch img{width:100%;height:100%;object-fit:cover}
+.preset-swatch-color{width:100%;height:100%}
+.preset-label{font-size:10px;color:rgba(200,200,220,.7);margin-bottom:6px;letter-spacing:.5px;font-weight:700}
+/* ── TOPBAR ── */
+.topbar{
+  background:#1a1a2e;color:#fff;padding:10px 20px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.07);
+}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.user-info{display:flex;align-items:center;gap:8px}
+.user-avatar{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2)}
 .user-name{font-size:12px;color:#c0c0d8}
-.header-right{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.topbar-right{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
 
-/* ── SYNC STATUS ── */
+
 .sync-status{
   display:flex;align-items:center;gap:6px;
   font-size:11px;padding:4px 10px;border-radius:20px;
@@ -312,7 +377,9 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .hidden{display:none!important}
 
 @media(max-width:600px){
-  .header{padding:12px 14px}
+  .topbar{padding:10px 12px}
+  .cover-title{font-size:22px}
+  .cover-body{padding:20px 16px 16px}
   .main{padding:16px 10px 60px}
   .toolbar{padding:8px 14px}
   .user-name{display:none}
@@ -343,14 +410,37 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 
 <!-- APP -->
 <div id="app">
-  <div class="header">
-    <div class="header-left">
-      <div>
-        <h1>✈ 東京獨旅行程</h1>
-        <div class="subtitle">2026 JAPAN TRIP</div>
+  <!-- COVER -->
+  <div class="cover" id="cover">
+    <img class="cover-img" id="coverImg" src="" alt="" style="display:none">
+    <div class="cover-overlay"></div>
+    <div class="cover-body">
+      <div class="cover-text">
+        <input class="cover-title" id="coverTitle" placeholder="行程標題" value="✈ 東京獨旅行程"
+          onchange="saveMeta()" oninput="saveMeta()">
+        <input class="cover-subtitle" id="coverSubtitle" placeholder="副標題（如年份、日期）" value="2026 JAPAN TRIP"
+          onchange="saveMeta()" oninput="saveMeta()">
+      </div>
+      <div class="cover-actions">
+        <button class="cover-img-btn" onclick="togglePresetPanel()">🖼 封面圖片</button>
+        <input type="file" id="coverFileInput" accept="image/*" style="display:none" onchange="uploadCoverImage(event)">
       </div>
     </div>
-    <div class="header-right">
+    <!-- PRESET PANEL -->
+    <div class="cover-preset-panel hidden" id="presetPanel">
+      <div class="preset-label">選擇預設封面</div>
+      <div class="preset-grid" id="presetGrid"></div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+        <button class="cover-img-btn" onclick="document.getElementById('coverFileInput').click()">📁 上傳本機圖片</button>
+        <button class="cover-img-btn" onclick="clearCover()" style="border-color:rgba(255,100,100,.4)">✕ 移除封面</button>
+        <button class="cover-img-btn" onclick="togglePresetPanel()" style="margin-left:auto">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
       <div class="sync-status" id="syncStatus">
         <div class="sync-dot"></div>
         <span id="syncText">已同步</span>
@@ -359,6 +449,8 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
         <img class="user-avatar" id="userAvatar" src="" alt="">
         <span class="user-name" id="userName"></span>
       </div>
+    </div>
+    <div class="topbar-right">
       <button class="btn btn-secondary" onclick="addDay()">＋ 新增天數</button>
       <button class="btn btn-secondary" onclick="collapseAll()">收合</button>
       <button class="btn btn-danger" onclick="signOut()" style="font-size:11px">登出</button>
@@ -431,7 +523,7 @@ const db = getFirestore(app);
 
 const EMOJIS = ['⛩️','🗼','🌸','🛍️','🍜','🎌','🏯','🚆','✈️','🌊','🎤','🎡','🎎','🏮','🍣','🎶','🗽','🛒','🏨','🌿','🎠','🏗️','🥩','⚡','🎮','🌈','🧸','💊','🌙','🍡','🔔','🌺','☕','🎨','🎯','🪔'];
 
-const DEFAULT_DATA = {days:[
+const DEFAULT_DATA = {meta:{title:'✈ 東京獨旅行程',subtitle:'2026 JAPAN TRIP',coverUrl:'',coverIsGradient:false},days:[
   {id:'d1',num:'D1',emoji:'🛬',title:'抵達日',date:'5月8日（五）',cat:'transit',tip:'',stops:[
     {id:'s1',icon:'✈️',name:'成田機場抵達',note:'辦理入境、取行李、購買 Suica 或 IC 卡'},
     {id:'s2',icon:'🚆',name:'成田機場 → 上野',note:'京成本線（特急）約 70 分鐘，或 Skyliner 約 41 分'},
@@ -560,10 +652,12 @@ async function loadData() {
       await setDoc(ref, DATA);
     }
     render();
+    applyCover();
   } catch(e) {
     toast('載入失敗：' + e.message);
     DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
     render();
+    applyCover();
   }
 }
 
@@ -576,6 +670,7 @@ function subscribeToChanges() {
       if (JSON.stringify(remote) !== JSON.stringify(DATA)) {
         DATA = remote;
         render();
+        applyCover();
         setSyncStatus('synced');
       }
     }
@@ -908,6 +1003,121 @@ function selectEmoji(em){
 }
 function closeAllPickers(){document.querySelectorAll('.emoji-picker').forEach(p=>p.remove())}
 document.addEventListener('click',closeAllPickers);
+
+// ── COVER & META ──
+const PRESETS = [
+  {label:'東京夜景', url:'https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&q=80'},
+  {label:'富士山', url:'https://images.unsplash.com/photo-1490806843957-31f4c9a91c65?w=1200&q=80'},
+  {label:'淺草寺', url:'https://images.unsplash.com/photo-1583400500827-4a73813e9e0c?w=1200&q=80'},
+  {label:'新幹線', url:'https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=1200&q=80'},
+  {label:'櫻花', url:'https://images.unsplash.com/photo-1522383225653-ed111181a951?w=1200&q=80'},
+  {label:'渋谷', url:'https://images.unsplash.com/photo-1542051841857-5f90071e7989?w=1200&q=80'},
+  {label:'秋葉原', url:'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200&q=80'},
+  {label:'和風街道', url:'https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1200&q=80'},
+  {label:'夜晚居酒屋', url:'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1200&q=80'},
+  {label:'深色漸層', color:'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)'},
+  {label:'暖色漸層', color:'linear-gradient(135deg,#2d1b0e,#5c2d0e,#8b4513)'},
+  {label:'綠色森林', color:'linear-gradient(135deg,#0d2616,#1a4a2e,#2d6a4f)'},
+];
+
+function renderPresetGrid() {
+  const grid = document.getElementById('presetGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const currentUrl = DATA.meta?.coverUrl || '';
+  PRESETS.forEach(p => {
+    const sw = document.createElement('div');
+    sw.className = 'preset-swatch' + (currentUrl === (p.url||p.color) ? ' active' : '');
+    sw.title = p.label;
+    if (p.url) {
+      const img = document.createElement('img');
+      img.src = p.url; img.alt = p.label;
+      sw.appendChild(img);
+    } else {
+      const div = document.createElement('div');
+      div.className = 'preset-swatch-color';
+      div.style.background = p.color;
+      sw.appendChild(div);
+    }
+    sw.onclick = () => setCover(p.url || p.color, !!p.color);
+    grid.appendChild(sw);
+  });
+}
+
+function setCover(urlOrGradient, isGradient) {
+  if (!DATA.meta) DATA.meta = {};
+  DATA.meta.coverUrl = urlOrGradient;
+  DATA.meta.coverIsGradient = isGradient;
+  applyCover();
+  renderPresetGrid();
+  scheduleSave();
+}
+
+function applyCover() {
+  const meta = DATA.meta || {};
+  const coverEl = document.getElementById('cover');
+  const imgEl = document.getElementById('coverImg');
+  if (meta.coverUrl) {
+    if (meta.coverIsGradient) {
+      imgEl.style.display = 'none';
+      coverEl.style.background = meta.coverUrl;
+    } else {
+      imgEl.src = meta.coverUrl;
+      imgEl.style.display = 'block';
+      coverEl.style.background = '#1a1a2e';
+    }
+  } else {
+    imgEl.style.display = 'none';
+    coverEl.style.background = '#1a1a2e';
+  }
+  if (meta.title !== undefined)
+    document.getElementById('coverTitle').value = meta.title;
+  if (meta.subtitle !== undefined)
+    document.getElementById('coverSubtitle').value = meta.subtitle;
+}
+
+function saveMeta() {
+  if (!DATA.meta) DATA.meta = {};
+  DATA.meta.title = document.getElementById('coverTitle').value;
+  DATA.meta.subtitle = document.getElementById('coverSubtitle').value;
+  scheduleSave();
+}
+
+function togglePresetPanel() {
+  const p = document.getElementById('presetPanel');
+  p.classList.toggle('hidden');
+  if (!p.classList.contains('hidden')) renderPresetGrid();
+}
+
+function clearCover() {
+  if (!DATA.meta) DATA.meta = {};
+  DATA.meta.coverUrl = '';
+  DATA.meta.coverIsGradient = false;
+  applyCover();
+  renderPresetGrid();
+  scheduleSave();
+  document.getElementById('presetPanel').classList.add('hidden');
+}
+
+function uploadCoverImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    setCover(ev.target.result, false);
+    document.getElementById('presetPanel').classList.add('hidden');
+  };
+  reader.readAsDataURL(file);
+}
+
+// close preset panel on outside click
+document.addEventListener('click', e => {
+  const panel = document.getElementById('presetPanel');
+  const btn = e.target.closest('.cover-img-btn');
+  if (panel && !panel.classList.contains('hidden') && !panel.contains(e.target) && !btn) {
+    panel.classList.add('hidden');
+  }
+});
 
 // ── FILTER BAR ──
 let activeFilterId = 'all';
