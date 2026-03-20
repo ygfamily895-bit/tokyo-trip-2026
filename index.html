@@ -16,35 +16,19 @@
 body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
 
 /* ── LOGIN SCREEN ── */
-#login-screen{
-  min-height:100vh;display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%);
-}
-.login-card{
-  background:#fff;border-radius:20px;padding:52px 44px;text-align:center;
-  max-width:380px;width:90%;box-shadow:0 30px 80px rgba(0,0,0,.35);
-}
-.login-card .logo{font-size:42px;margin-bottom:16px}
-.login-card h1{font-family:'DM Serif Display',serif;font-size:26px;font-weight:400;color:#1e1d1a;margin-bottom:6px}
-.login-card p{font-size:13px;color:#888;margin-bottom:32px}
-.pw-form{display:flex;flex-direction:column;gap:12px;width:100%}
-.pw-input{
-  width:100%;padding:13px 16px;border-radius:12px;
-  border:1.5px solid #e0ddd6;font-size:15px;
-  font-family:'Noto Sans TC',sans-serif;color:#1e1d1a;
-  outline:none;text-align:center;letter-spacing:3px;
-  transition:border-color .2s;background:#fafaf8;
-}
+#login-screen{display:none}
+
+
+
+
+
+
 .pw-input:focus{border-color:#c84b31;background:#fff}
 .pw-input::placeholder{letter-spacing:0;color:#bbb;font-size:13px}
-.pw-btn{
-  width:100%;padding:14px;border-radius:12px;border:none;
-  background:#c84b31;color:#fff;font-size:14px;font-weight:700;
-  cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .2s;
-}
+
 .pw-btn:hover{background:#a83a22}
 .pw-btn:disabled{background:#ccc;cursor:not-allowed}
-.pw-error{font-size:12px;color:#c84b31;min-height:18px;text-align:center}
+
 .login-note{font-size:11px;color:#aaa;margin-top:16px}
 
 /* ── LOADING ── */
@@ -634,22 +618,6 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="logo">🗼</div>
-    <h1>東京獨旅 2026</h1>
-    <p>輸入密碼以查看與編輯行程</p>
-    <div class="pw-form">
-      <input class="pw-input" type="password" id="pwInput" placeholder="輸入密碼"
-       >
-      <div class="pw-error" id="pwError"></div>
-      <button class="pw-btn" id="loginBtn">進入行程</button>
-    </div>
-    <p class="login-note">忘記密碼請聯絡行程擁有人</p>
-  </div>
-</div>
-
 <!-- LOADING -->
 <div id="loading-screen" class="hidden">
   <div class="spinner"></div>
@@ -833,145 +801,14 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ── PASSWORD CONFIG ──
-// SHA-256 hash of your password. Generate at: https://emn178.github.io/online-tools/sha256.html
 
-const PASSWORD_HASH = '3ba447072b1bcb90321f2ed1d549832955a19dacb57c4c068f9f6367c6387ff0';
-const TRIP_DOC_ID = 'main-trip';
-
-const EMOJIS = ['⛩️','🗼','🌸','🛍️','🍜','🎌','🏯','🚆','✈️','🌊','🎤','🎡','🎎','🏮','🍣','🎶','🗽','🛒','🏨','🌿','🎠','🏗️','🥩','⚡','🎮','🌈','🧸','💊','🌙','🍡','🔔','🌺','☕','🎨','🎯','🪔'];
-
-const DEFAULT_DATA = {meta:{title:'✈ 東京獨旅行程',subtitle:'2026 JAPAN TRIP',coverUrl:'',coverIsGradient:false},days:[
-  {id:'d1',num:'D1',emoji:'🛬',title:'抵達日',date:'5月8日（五）',cat:'transit',tip:'',stops:[
-    {id:'s1',icon:'✈️',name:'成田機場抵達',note:'辦理入境、取行李、購買 Suica 或 IC 卡'},
-    {id:'s2',icon:'🚆',name:'成田機場 → 上野',note:'京成本線（特急）約 70 分鐘，或 Skyliner 約 41 分'},
-    {id:'s3',icon:'🏨',name:'Vessel Inn 上野入谷 入住',note:'放好行李，便利商店採買晚餐、休息'}]},
-  {id:'d2',num:'D2',emoji:'⛩️',title:'新宿・新大久保',date:'5月9日（六）',cat:'tokyo',tip:'💡 大久保站和新宿站步行距離約 15 分鐘，可以用走的，邊逛邊移動。',stops:[
-    {id:'s4',icon:'⛩️',name:'東京大神宮',note:'入谷 → 日比谷線 → 上野 → JR山手線 → 秋葉原 → JR中央總武線 → 飯田橋，出西口步行 5 分'},
-    {id:'s5',icon:'⛩️',name:'皆中稻荷神社',note:'JR中央總武線 飯田橋 → 大久保，北口出站步行約 1 分'},
-    {id:'s6',icon:'🛍️',name:'新大久保韓國街',note:'步行，吃喝逛街'},
-    {id:'s7',icon:'🛒',name:'唐吉訶德 新宿東南口店',note:'步行 or 搭 JR 山手線至新宿'},
-    {id:'s8',icon:'🍗',name:'鳥貴族 新宿南口店',note:'晚餐'},
-    {id:'s9',icon:'🏨',name:'返回飯店',note:'JR 山手線 外環 → 上野，換地鐵回入谷'}]},
-  {id:'d3',num:'D3',emoji:'🌿',title:'原宿・中目黑・東京鐵塔',date:'5月10日（日）',cat:'tokyo',tip:'💡 動線：原宿 → 池袋 → 目黑 → 東京鐵塔，沿山手線外圈移動再下來，省約 40 分鐘。',stops:[
-    {id:'s10',icon:'⛩️',name:'明治神宮（上午）',note:'入谷 → 日比谷線 → 表參道 → 步行至原宿，早上參拜人少'},
-    {id:'s11',icon:'🧸',name:'KIDDY LAND（表參道）',note:'步行，明治神宮 → 竹下通 → 表參道，全在同區'},
-    {id:'s12',icon:'⚡',name:'哈利波特旗艦店（池袋）',note:'搭 JR 山手線 原宿 → 池袋'},
-    {id:'s13',icon:'🌸',name:'目黑川散步（黃昏前）',note:'池袋 → JR山手線 → 目黑站，步行沿河岸走'},
-    {id:'s14',icon:'🗼',name:'東京鐵塔（黃昏夜景）',note:'目黑 → 地鐵南北線 → 麻布十番步行。建議 18:00 後抵達'},
-    {id:'s15',icon:'🏨',name:'返回飯店',note:'神谷町 → 日比谷線 → 入谷'}]},
-  {id:'d4',num:'D4',emoji:'🏮',title:'淺草・晴空塔',date:'5月11日（一）',cat:'tokyo',tip:'💡 路線最順的一天！淺草 → 隅田川 → 晴空塔全在步行範圍內。',stops:[
-    {id:'s16',icon:'⛩️',name:'淺草寺（上午）',note:'入谷 → 日比谷線 → 仲御徒町，換銀座線 → 淺草。早上人少'},
-    {id:'s17',icon:'🪔',name:'錢塚地藏堂',note:'步行，淺草寺附近'},
-    {id:'s18',icon:'🌊',name:'隅田川公園散步',note:'步行沿河邊走，往晴空塔方向'},
-    {id:'s19',icon:'🗽',name:'東京晴空塔',note:'步行約 10 分，可選展望台。Solamachi 商場也很好逛'},
-    {id:'s20',icon:'🥩',name:'燒肉KING 淺草ROX',note:'晚餐'},
-    {id:'s21',icon:'🏨',name:'返回飯店',note:''}]},
-  {id:'d5',num:'D5',emoji:'🎮',title:'日本橋・秋葉原・上野',date:'5月12日（二）',cat:'tokyo',tip:'💡 動線：日本橋（南）→ 秋葉原 → 上野（北），一路向北，不折返。',stops:[
-    {id:'s22',icon:'⛩️',name:'小網神社（開門前到）',note:'入谷 → 日比谷線 → 人形町站，步行約 5 分'},
-    {id:'s23',icon:'⛩️',name:'福德神社',note:'步行，兩社間約 7 分鐘'},
-    {id:'s24',icon:'🎮',name:'秋葉原：壽屋・Animate・Mandarake',note:'人形町 → 日比谷線 → 秋葉原。壽屋在UDX附近，Animate/Mandarake在中央通'},
-    {id:'s25',icon:'🧸',name:'上野：Yamashiroya',note:'秋葉原 → JR 山手線 → 上野，步行至上野站旁'},
-    {id:'s26',icon:'🛒',name:'阿美橫町',note:'步行，Yamashiroya 斜對面即是'},
-    {id:'s27',icon:'🏨',name:'返回飯店',note:'步行或搭地鐵回入谷'}]},
-  {id:'d6',num:'D6',emoji:'🏯',title:'川越市一日遊',date:'5月13日（三）',cat:'daytrip',tip:'💡 務必搭「急行」，比準急快約 20 分鐘。',stops:[
-    {id:'s28',icon:'🚆',name:'往川越（建議 8:30 前出發）',note:'入谷 → 日比谷線 → 上野 → JR山手線 → 池袋 → 東武東上線「急行」→ 川越（約 30-35 分）'},
-    {id:'s29',icon:'⛩️',name:'冰川神社',note:'川越站步行約 20 分，或搭巴士'},
-    {id:'s30',icon:'🔔',name:'時之鐘',note:'藏造老街核心地標'},
-    {id:'s31',icon:'🍡',name:'藏造老街・菓子屋橫丁',note:'邊走邊吃，地瓜零食、冰淇淋必嘗'},
-    {id:'s32',icon:'🚆',name:'返回東京（約 16:00）',note:'東武東上線急行回池袋，可順道逛 Sunshine City'}]},
-  {id:'d7',num:'D7',emoji:'🌊',title:'江之島・鎌倉一日遊',date:'5月14日（四）',cat:'daytrip',tip:'💡 改為「江之島先、鎌倉後」，回程從鎌倉直接搭 JR 回東京，省時。',stops:[
-    {id:'s33',icon:'🚆',name:'往江之島（建議 8:00 前出發）',note:'上野 → JR 湘南新宿線 → 藤澤 → 江之電 → 江之島站（約 1.5 小時）'},
-    {id:'s34',icon:'⛩️',name:'江之島神社（上午先到）',note:'參拜後可上展望台、走岩屋洞窟'},
-    {id:'s35',icon:'🚋',name:'江之電 → 鎌倉（下午）',note:'搭江之電沿海岸線，欣賞海景，約 30 分到鎌倉站'},
-    {id:'s36',icon:'🛍️',name:'小町通老街',note:'鎌倉站正前方，邊走邊吃'},
-    {id:'s37',icon:'⛩️',name:'鶴岡八幡宮',note:'小町通底端，步行即到'},
-    {id:'s38',icon:'🚆',name:'鎌倉 → 東京（直接回程）',note:'JR 横須賀線 鎌倉 → 東京，省 40 分鐘'}]},
-  {id:'d8',num:'D8',emoji:'🎡',title:'東京迪士尼海洋（建議）',date:'5月15日（五）',cat:'free',tip:'✨ 此日空白，可依喜好自行規劃。其他選項：谷中銀座、下北澤、六本木等。',stops:[
-    {id:'s39',icon:'🎡',name:'東京迪士尼海洋 DisneySea',note:'舞浜站，玩一整天'},
-    {id:'s40',icon:'📝',name:'或：豐洲市場 + 台場海濱',note:'自由替換為其他選項'}]},
-  {id:'d9',num:'D9',emoji:'😴',title:'演唱會前備休日',date:'5月16日（六）',cat:'free',tip:'🎵 明天是 NIJIFES 2026！今天輕鬆安排，早點休息補充體力。',stops:[
-    {id:'s41',icon:'☕',name:'代官山蔦屋書店 + 中目黑咖啡館',note:'輕鬆文青路線'},
-    {id:'s42',icon:'🌿',name:'吉祥寺 + 井之頭公園',note:'悠閒下午'}]},
-  {id:'d10',num:'D10',emoji:'🎤',title:'NIJIFES 2026 演唱會',date:'5月17日（日）',cat:'event',tip:'🌟 今天不要安排其他行程，全心享受演唱會。注意末班車時間。',stops:[
-    {id:'s43',icon:'🚆',name:'往幕張展覽館',note:'上野 → JR 京葉線 → 海濱幕張站，步行 5 分。建議開演 90 分前出發'},
-    {id:'s44',icon:'🎶',name:'NIJIFES 2026（幕張メッセ）',note:'享受！周邊攤位可能早排隊，建議開館即進場'}]},
-  {id:'d11',num:'D11',emoji:'🌈',title:'橫濱動漫巡禮',date:'5月18日（一）',cat:'yokohama',tip:'',stops:[
-    {id:'s45',icon:'🚆',name:'往橫濱',note:'上野 → JR 京濱東北線 → 橫濱站（約 40 分）'},
-    {id:'s46',icon:'🎎',name:'橫濱 VIVRE（彩虹社官方娃娃店）',note:'橫濱站步行約 5 分'},
-    {id:'s47',icon:'🏗️',name:'港未來 Landmark Tower',note:'步行或搭港未來線，展望台視野極佳'},
-    {id:'s48',icon:'🥟',name:'橫濱中華街 午餐/晚餐',note:'搭地鐵元町中華街站，吃肉包、烤肉'},
-    {id:'s49',icon:'🧱',name:'紅磚倉庫 → 山下公園',note:'步行沿海岸線散步，黃昏特別美'}]},
-  {id:'d12',num:'D12',emoji:'🏙️',title:'台場・豐洲（建議）',date:'5月19日（二）',cat:'free',tip:'✨ 可替換為：澀谷 Scramble Square 展望台、東京國立博物館（雨天備案）。',stops:[
-    {id:'s50',icon:'🐟',name:'豐洲市場（早市）',note:'海鮮丼早餐'},
-    {id:'s51',icon:'🌅',name:'台場海濱公園',note:'彩虹大橋景觀'},
-    {id:'s52',icon:'🎨',name:'teamLab Planets',note:'需提前購票'}]},
-  {id:'d13',num:'D13',emoji:'🛍️',title:'最後採買日',date:'5月20日（三）',cat:'shopping',tip:'💡 確認機票資訊、搭機時間，今晚早點休息。',stops:[
-    {id:'s53',icon:'💊',name:'上野・阿美橫町藥妝區',note:'步行距離內，藥妝、食品、伴手禮全包'},
-    {id:'s54',icon:'🏬',name:'新宿・伊勢丹 or 高島屋',note:'精品伴手禮、甜點，最後機會'},
-    {id:'s55',icon:'📦',name:'回飯店打包行李',note:'易碎品放中間，液體打包進託運'}]},
-  {id:'d14',num:'D14',emoji:'✈️',title:'回家日',date:'5月21日（四）',cat:'transit',tip:'',stops:[
-    {id:'s56',icon:'🏨',name:'飯店退房',note:'確認無遺留物品'},
-    {id:'s57',icon:'🚆',name:'前往成田機場（留至少 3 小時餘裕）',note:'入谷 → 日比谷線 → 上野 → 京成本線（特急/Skyliner）→ 成田機場'},
-    {id:'s58',icon:'🛒',name:'成田機場採買',note:'免稅店、藥妝、零食，最後補貨'},
-    {id:'s59',icon:'✈️',name:'登機返台',note:'旅程圓滿結束 🎉'}]}
-]};
-
-let DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
-let saveTimer = null;
-let unsubscribe = null;
-let isFirstLoad = true;
-
-// ── AUTH ──
-// SHA-256 using crypto.subtle (works on HTTPS/GitHub Pages)
-async function sha256(str) {
-  const msgBuffer = new TextEncoder().encode(str);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-window.doLogin = async () => {
-  const pw = document.getElementById('pwInput').value;
-  const errEl = document.getElementById('pwError');
-  const btn = document.getElementById('loginBtn');
-  if (!pw) { errEl.textContent = '請輸入密碼'; return; }
-  btn.disabled = true;
-  btn.textContent = '驗證中…';
-  try {
-    const hash = await sha256(pw);
-    if (hash === PASSWORD_HASH) {
-      errEl.textContent = '';
-      sessionStorage.setItem('trip_auth', '1');
-      showApp();
-    } else {
-      errEl.textContent = '密碼錯誤，請再試一次';
-      btn.disabled = false;
-      btn.textContent = '進入行程';
-      document.getElementById('pwInput').value = '';
-      document.getElementById('pwInput').focus();
-    }
-  } catch(e) {
-    errEl.textContent = '驗證失敗，請確認使用 HTTPS 開啟';
-    btn.disabled = false;
-    btn.textContent = '進入行程';
-  }
-};
-
-// Bind login button after doLogin is defined
-document.getElementById('loginBtn').addEventListener('click', () => window.doLogin());
-document.getElementById('pwInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') window.doLogin();
-});
 
 window.signOut = () => {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-  sessionStorage.removeItem('trip_auth');
-  document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('app').style.display = 'none';
 };
 
 async function showApp() {
-  document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('loading-screen').classList.remove('hidden');
   document.getElementById('app').style.display = 'none';
   await loadData();
@@ -980,10 +817,8 @@ async function showApp() {
   subscribeToChanges();
 }
 
-// auto-login if session still valid
-if (sessionStorage.getItem('trip_auth') === '1') {
-  showApp();
-}
+// 直接進入（已移除密碼驗證）
+showApp();
 
 async function loadData() {
   try {
