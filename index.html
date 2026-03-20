@@ -1629,7 +1629,7 @@ document.addEventListener('click', () => closeAllStopTpls());
 
 
 // ── PANEL CONTROLS ──
-function togglePanel(id) {
+window.togglePanel = function(id) {
   const panel = document.getElementById(id);
   const isOpen = panel.classList.contains('open');
   closeAllPanels();
@@ -1648,11 +1648,11 @@ function togglePanel(id) {
   }
   }
 }
-function closePanel(id) {
+window.closePanel = function(id) {
   document.getElementById(id).classList.remove('open');
   document.getElementById('panelOverlay').style.display = 'none';
 }
-function closeAllPanels() {
+window.closeAllPanels = function() {
   document.querySelectorAll('.slide-panel').forEach(p => p.classList.remove('open'));
   document.getElementById('panelOverlay').style.display = 'none';
 }
@@ -1665,13 +1665,13 @@ function getRate() {
     || 0.221;
 }
 
-function saveRate() {
+window.saveRate = function saveRate() {
   if (!DATA.meta) DATA.meta = {};
   DATA.meta.customRate = getRate();
   scheduleSave();
 }
 
-async function fetchLiveRate() {
+async window.fetchLiveRate = async function() {
   const btn = document.getElementById('refreshRateBtn');
   const icon = document.getElementById('refreshIcon');
   const note = document.getElementById('rateNote');
@@ -1702,7 +1702,7 @@ async function fetchLiveRate() {
   }
 }
 
-function calcCurrency(from) {
+window.calcCurrency = function(from) {
   const rate = getRate();
   if (from === 'jpy') {
     const jpy = parseFloat(document.getElementById('jpyInput').value) || 0;
@@ -1722,7 +1722,7 @@ function calcCurrency(from) {
   renderQuickCalc();
 }
 
-function renderQuickCalc() {
+window.renderQuickCalc = function() {
   const grid = document.getElementById('quickCalc');
   if (!grid) return;
   const rate = getRate();
@@ -1782,7 +1782,7 @@ function getPackData() {
   return DATA.packing;
 }
 
-function renderPackList() {
+window.renderPackList = function() {
   const body = document.getElementById('packBody');
   if (!body) return;
   const pack = getPackData();
