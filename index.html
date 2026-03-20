@@ -351,6 +351,87 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 }
 .add-day-btn:hover{border-color:var(--accent);color:var(--accent);background:#fdf5f3}
 
+
+/* ── TODAY HIGHLIGHT ── */
+.day-card.is-today{box-shadow:0 0 0 2px var(--accent),0 4px 20px rgba(200,75,49,.18);}
+.today-badge{
+  display:inline-flex;align-items:center;gap:3px;
+  background:var(--accent);color:#fff;
+  font-size:9px;font-weight:700;letter-spacing:.5px;
+  padding:2px 7px;border-radius:10px;flex-shrink:0;
+}
+
+/* ── BUDGET ── */
+.budget-row{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 4px 0;flex-wrap:wrap;
+}
+.budget-item{
+  display:flex;align-items:center;gap:4px;
+  background:#f5f3ef;border-radius:6px;padding:3px 8px;
+  font-size:11.5px;
+}
+.budget-label{color:var(--muted);font-size:10px}
+.budget-amount{
+  font-weight:700;color:var(--text);
+  border:none;background:transparent;outline:none;
+  font-family:'Noto Sans TC',sans-serif;
+  font-size:12px;width:70px;text-align:right;
+}
+.budget-amount:focus{background:#ebe8e0;border-radius:3px;padding:0 3px}
+.budget-currency{font-size:10px;color:var(--muted)}
+.day-budget-total{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 4px 2px;border-top:1px dashed #ece8e0;margin-top:6px;
+  font-size:11px;color:var(--muted);
+}
+.day-budget-total strong{color:var(--text);font-size:13px}
+.trip-budget-bar{
+  background:var(--card);border-top:1px solid var(--border);
+  padding:10px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  font-size:12px;
+}
+.trip-budget-label{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.5px}
+.trip-budget-amount{font-size:18px;font-weight:700;color:var(--text)}
+.trip-budget-jpy{font-size:11px;color:var(--muted)}
+
+/* ── TRANSIT TIME ── */
+.transit-row{
+  display:flex;align-items:center;gap:6px;padding:2px 4px;
+}
+.transit-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:#eaf0fe;color:#2563eb;
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;
+  border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+  transition:all .15s;
+}
+.transit-badge:hover{background:#d0e0fc}
+.transit-time-input{
+  font-size:11px;color:#2563eb;font-weight:700;
+  border:none;background:transparent;outline:none;
+  font-family:'Noto Sans TC',sans-serif;width:60px;
+  border-bottom:1px dashed #93b4f0;
+}
+.add-transit-btn{
+  display:inline-flex;align-items:center;gap:3px;
+  background:none;border:1px dashed #c8d8f8;border-radius:10px;
+  padding:2px 8px;color:#93b4f0;font-size:10px;cursor:pointer;
+  font-family:'Noto Sans TC',sans-serif;transition:all .15s;
+}
+.add-transit-btn:hover{border-color:#3a5a8c;color:#3a5a8c;background:#eaf0fe}
+
+/* ── TEMPLATE MODAL ── */
+.template-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+.template-btn{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 6px;border-radius:10px;border:1.5px solid var(--border);
+  background:var(--bg);cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif;
+}
+.template-btn:hover{border-color:var(--accent2);background:#eaf0fe}
+.template-btn .t-icon{font-size:20px}
+.template-btn .t-name{font-size:11px;font-weight:700;color:var(--text)}
+
 /* ── EMOJI PICKER ── */
 .emoji-picker{
   position:absolute;z-index:200;left:0;top:32px;
@@ -464,9 +545,21 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
     <span style="margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap">✏️ 點擊文字直接編輯・拖曳排序・自動雲端同步</span>
   </div>
 
+  <div class="trip-budget-bar" id="tripBudgetBar"></div>
   <div class="main" id="main"></div>
   <div class="add-day-wrap">
     <button class="add-day-btn" onclick="addDay()">＋ 新增一天</button>
+  </div>
+</div>
+
+<!-- Template Modal -->
+<div class="modal-overlay hidden" id="templateModalOverlay">
+  <div class="modal" style="width:380px">
+    <h2>選擇行程類型</h2>
+    <div class="template-grid" id="templateGrid"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeTemplateModal()">取消</button>
+    </div>
   </div>
 </div>
 
@@ -686,6 +779,7 @@ function subscribeToChanges() {
         DATA = remote;
         render();
         applyCover();
+        renderBudgets();
         setSyncStatus('synced');
       }
     }
@@ -734,14 +828,22 @@ function render() {
   });
   renderFilterBar();
   applyFilter();
+  renderBudgets();
 }
 
 function renderDay(day) {
-  const stops = day.stops.map(s => renderStop(s, day.id)).join('');
+  const stops = day.stops.map((s,si) => renderStop(s, day.id, si, day.stops)).join('');
   const fields = (day.fields||[]).map(f => renderField(f, day.id)).join('');
-  return `<div class="day-card" data-cat="${day.cat}" data-id="${day.id}">
+  const isToday = checkIsToday(day);
+  const dayTotal = calcDayBudget(day);
+  const todayBadge = isToday ? '<span class="today-badge">📍 今天</span>' : '';
+  const budgetTotal = dayTotal > 0
+    ? `<div class="day-budget-total">當日小計 <strong>¥${dayTotal.toLocaleString()}</strong><span class="trip-budget-jpy"> ≈ NT$${Math.round(dayTotal/4.5).toLocaleString()}</span></div>`
+    : '';
+  return `<div class="day-card${isToday?' is-today':''}" data-cat="${day.cat}" data-id="${day.id}">
     <div class="day-header" onclick="toggleCollapse('${day.id}',event)">
       <span class="day-num">${esc(day.num)}</span>
+      ${todayBadge}
       <div class="day-title-wrap">
         <span class="day-emoji" onclick="openDayEmoji('${day.id}',event)" title="換圖示" style="position:relative">${day.emoji}</span>
         <input class="day-title-text" value="${escA(day.title)}" onclick="event.stopPropagation()"
@@ -759,21 +861,45 @@ function renderDay(day) {
     </div>
     <div class="day-body">
       <ul class="stop-list" id="stops-${day.id}">${stops}</ul>
+      ${budgetTotal}
       <div class="tip-row">
         <div class="tip-box-editable" contenteditable="true" data-placeholder="💡 新增備忘或小貼士…"
           onblur="updateDay('${day.id}','tip',this.innerText.trim())">${esc(day.tip)}</div>
       </div>
       <div class="custom-fields" id="fields-${day.id}">${fields}</div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <button class="add-stop-btn" style="flex:1;min-width:120px" onclick="addStop('${day.id}')">＋ 新增行程</button>
+        <button class="add-stop-btn" style="flex:1;min-width:120px" onclick="openTemplateModal('${day.id}')">＋ 新增行程</button>
         <button class="add-field-btn" onclick="addField('${day.id}')">＋ 新增欄位</button>
       </div>
     </div>
   </div>`;
 }
 
-function renderStop(s, dayId) {
+function renderStop(s, dayId, idx, allStops) {
   const stopFields = (s.fields||[]).map(f => renderStopField(f, s.id, dayId)).join('');
+  const budgetVal = s.budget != null ? s.budget : '';
+  const budgetRow = `<div class="budget-row">
+    <div class="budget-item">
+      <span class="budget-label">¥</span>
+      <input class="budget-amount" type="number" min="0" value="${budgetVal}"
+        placeholder="費用"
+        onchange="updateStop('${dayId}','${s.id}','budget',this.value===''?null:Number(this.value));renderBudgets()"
+        onclick="event.stopPropagation()" title="輸入日圓金額">
+      <span class="budget-currency">JPY</span>
+    </div>
+  </div>`;
+  // transit row: show between stops (after this stop, before next)
+  const hasTransit = s.transit != null;
+  const isLast = idx === allStops.length - 1;
+  const transitRow = !isLast ? `<div class="transit-row">
+    ${hasTransit
+      ? `<span class="transit-badge">🚶 <input class="transit-time-input" value="${escA(s.transit||'')}"
+          placeholder="幾分鐘"
+          onchange="updateStop('${dayId}','${s.id}','transit',this.value)"
+          onclick="event.stopPropagation()"> 分鐘</span>
+         <button class="icon-btn del" style="font-size:10px;opacity:.5" onclick="updateStop('${dayId}','${s.id}','transit',null);render()">✕</button>`
+      : `<button class="add-transit-btn" onclick="addTransit('${dayId}','${s.id}')">＋ 交通時間</button>`}
+  </div>` : '';
   return `<li class="stop-item" draggable="true" data-id="${s.id}" data-day="${dayId}">
     <span class="drag-handle">⠿</span>
     <div class="stop-icon-wrap">
@@ -790,10 +916,11 @@ function renderStop(s, dayId) {
       <button class="icon-btn del" onclick="deleteStop('${dayId}','${s.id}')">✕</button>
     </div>
     <div class="stop-extra">
+      ${budgetRow}
       ${stopFields}
       <button class="add-stop-field-btn" onclick="addStopField('${dayId}','${s.id}')">＋ 新增欄位</button>
     </div>
-  </li>`;
+  </li>${transitRow}`;
 }
 
 function renderStopField(f, stopId, dayId) {
@@ -1029,6 +1156,113 @@ function applyCover() {
   if (meta.subtitle !== undefined)
     document.getElementById('coverSubtitle').value = meta.subtitle;
 }
+
+
+// ── TODAY HIGHLIGHT ──
+// Set your trip start date here (YYYY-MM-DD)
+const TRIP_START = '2026-05-08';
+
+function checkIsToday(day) {
+  const today = new Date();
+  const start = new Date(TRIP_START);
+  const diffDays = Math.floor((today - start) / 86400000);
+  // match by day index (D1=0, D2=1 ...)
+  const idx = DATA.days.findIndex(d => d.id === day.id);
+  return diffDays === idx;
+}
+
+// ── BUDGET ──
+function calcDayBudget(day) {
+  return (day.stops || []).reduce((sum, s) => sum + (s.budget ? Number(s.budget) : 0), 0);
+}
+
+function calcTripBudget() {
+  return DATA.days.reduce((sum, day) => sum + calcDayBudget(day), 0);
+}
+
+function renderBudgets() {
+  const total = calcTripBudget();
+  const bar = document.getElementById('tripBudgetBar');
+  if (!bar) return;
+  if (total === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  bar.innerHTML = `
+    <span class="trip-budget-label">旅程總花費</span>
+    <span class="trip-budget-amount">¥${total.toLocaleString()}</span>
+    <span class="trip-budget-jpy">≈ NT$${Math.round(total / 4.5).toLocaleString()}</span>
+    <span style="margin-left:auto;font-size:10px;color:var(--muted)">匯率 1 JPY ≈ 0.22 TWD（可自行調整）</span>
+  `;
+}
+
+// ── TRANSIT TIME ──
+window.addTransit = (dayId, stopId) => {
+  const d = DATA.days.find(x => x.id === dayId);
+  if (!d) return;
+  const s = d.stops.find(x => x.id === stopId);
+  if (!s) return;
+  s.transit = '15';
+  render();
+  setTimeout(() => {
+    const el = document.querySelector(`[data-id="${stopId}"] .transit-time-input`);
+    if (el) { el.focus(); el.select(); }
+  }, 50);
+};
+
+// ── TEMPLATE MODAL ──
+const TEMPLATES = [
+  { icon:'⛩️', name:'神社', fields:[{label:'參拜時間',body:''},{label:'御守購買',body:''}] },
+  { icon:'🍜', name:'餐廳', fields:[{label:'訂位資訊',body:''},{label:'必點料理',body:''}] },
+  { icon:'🛍️', name:'購物', fields:[{label:'購物清單',body:''},{label:'預算上限',body:''}] },
+  { icon:'🚆', name:'交通', fields:[{label:'路線',body:''},{label:'票價',body:''}] },
+  { icon:'🏨', name:'住宿', fields:[{label:'Check-in',body:''},{label:'地址',body:''}] },
+  { icon:'🎡', name:'景點', fields:[{label:'開放時間',body:''},{label:'票價',body:''}] },
+  { icon:'📝', name:'空白', fields:[] },
+];
+
+let templateTargetDay = null;
+
+window.openTemplateModal = (dayId) => {
+  templateTargetDay = dayId;
+  const grid = document.getElementById('templateGrid');
+  grid.innerHTML = '';
+  TEMPLATES.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'template-btn';
+    btn.innerHTML = `<span class="t-icon">${t.icon}</span><span class="t-name">${t.name}</span>`;
+    btn.onclick = () => applyTemplate(t);
+    grid.appendChild(btn);
+  });
+  document.getElementById('templateModalOverlay').classList.remove('hidden');
+};
+
+window.closeTemplateModal = () => {
+  document.getElementById('templateModalOverlay').classList.add('hidden');
+  templateTargetDay = null;
+};
+
+function applyTemplate(t) {
+  const d = DATA.days.find(x => x.id === templateTargetDay);
+  if (!d) return;
+  const id = 's' + Date.now();
+  const newStop = {
+    id, icon: t.icon, name: '', note: '',
+    fields: t.fields.map((f, i) => ({ id: 'sf' + (Date.now() + i), label: f.label, body: f.body }))
+  };
+  d.stops.push(newStop);
+  closeTemplateModal();
+  render();
+  setTimeout(() => {
+    const el = document.querySelector(`[data-id="${id}"] .stop-name-input`);
+    if (el) el.focus();
+  }, 60);
+}
+
+document.getElementById('templateModalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('templateModalOverlay')) closeTemplateModal();
+});
 
 // ── FILTER BAR ──
 let activeFilterId = 'all';
