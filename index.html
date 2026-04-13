@@ -3,189 +3,77 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>東京獨旅 2026 · 雲端行程</title>
+<title>東京獨旅 2026</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=DM+Serif+Display&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#f7f5f0;--card:#fff;--border:#e8e4dc;--text:#1e1d1a;--muted:#88857f;
-  --accent:#c84b31;--accent2:#3a5a8c;--shadow:0 2px 12px rgba(0,0,0,.07);--radius:10px;
+  --accent:#c84b31;--accent2:#3a5a8c;--green:#2d7a4f;
+  --shadow:0 2px 12px rgba(0,0,0,.07);--radius:10px;
   --cat-transit:#888580;--cat-tokyo:#3a5a8c;--cat-daytrip:#6b4fa0;
   --cat-event:#c84b31;--cat-yokohama:#1a7a6e;--cat-shopping:#b8760a;--cat-free:#bbb;
 }
 body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
 
-/* ── LOGIN SCREEN ── */
-#login-screen{display:none}
-
-
-
-
-
-
-.pw-input:focus{border-color:#c84b31;background:#fff}
-.pw-input::placeholder{letter-spacing:0;color:#bbb;font-size:13px}
-
-.pw-btn:hover{background:#a83a22}
-.pw-btn:disabled{background:#ccc;cursor:not-allowed}
-
-.login-note{font-size:11px;color:#aaa;margin-top:16px}
-
-/* ── LOADING ── */
-#loading-screen{
-  min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  background:var(--bg);gap:16px;
-}
+/* LOADING */
+#loading-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);gap:16px}
 .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent2);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── APP ── */
+/* COVER */
 #app{display:none}
-
-/* ── HEADER ── */
-/* ── COVER ── */
-.cover{
-  position:relative;min-height:200px;
-  background:#1a1a2e;
-  display:flex;flex-direction:column;justify-content:flex-end;
-}
-.cover-img{
-  position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;opacity:0.45;pointer-events:none;
-  transition:opacity .4s;
-}
-.cover-overlay{
-  position:absolute;inset:0;
-  background:linear-gradient(to bottom,rgba(10,10,30,0.1) 0%,rgba(10,10,30,0.75) 100%);
-  pointer-events:none;
-}
-.cover-body{
-  position:relative;z-index:2;
-  padding:28px 28px 20px;
-  display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;
-}
-.cover-text{flex:1;min-width:0}
-.cover-title{
-  font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;color:#fff;
-  outline:none;background:transparent;border:none;width:100%;
-  text-shadow:0 1px 8px rgba(0,0,0,.5);cursor:text;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.cover-title:focus{
-  background:rgba(255,255,255,.1);border-radius:6px;
-  padding:2px 8px;text-overflow:clip;
-}
+.cover{position:relative;min-height:220px;background:#1a1a2e;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.cover-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.45;pointer-events:none}
+.cover-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(10,10,30,.1) 0%,rgba(10,10,30,.75) 100%);pointer-events:none}
+.cover-body{position:relative;z-index:2;padding:28px 28px 20px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.cover-title{font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;color:#fff;outline:none;background:transparent;border:none;width:100%;text-shadow:0 1px 8px rgba(0,0,0,.5);cursor:text}
+.cover-title:focus{background:rgba(255,255,255,.1);border-radius:6px;padding:2px 8px}
 .cover-title::placeholder{color:rgba(255,255,255,.4)}
-.cover-subtitle{
-  font-size:12px;color:rgba(200,200,220,.85);margin-top:4px;
-  outline:none;background:transparent;border:none;width:100%;
-  cursor:text;letter-spacing:.5px;
-}
+.cover-subtitle{font-size:12px;color:rgba(200,200,220,.85);margin-top:4px;outline:none;background:transparent;border:none;width:100%;cursor:text;letter-spacing:.5px}
 .cover-subtitle:focus{background:rgba(255,255,255,.08);border-radius:4px;padding:1px 6px}
 .cover-subtitle::placeholder{color:rgba(200,200,220,.4)}
-.cover-img-btn{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:7px 13px;border-radius:8px;font-size:11px;font-weight:700;
-  border:1.5px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);
-  color:#fff;cursor:pointer;transition:all .2s;font-family:'Noto Sans TC',sans-serif;
-}
-.cover-img-btn:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.5)}
-/* preset picker - fixed overlay */
-.cover-preset-panel{
-  position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;
-  background:rgba(0,0,0,.7);backdrop-filter:blur(6px);
-  display:flex;align-items:center;justify-content:center;
-  padding:20px;
-}
-.cover-preset-panel.hidden{display:none}
-.preset-inner{
-  background:#1a1a2e;border-radius:16px;padding:24px;
-  width:100%;max-width:640px;max-height:90vh;overflow-y:auto;
-  box-shadow:0 24px 64px rgba(0,0,0,.5);
-}
-.preset-inner h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:16px;letter-spacing:.5px}
-.preset-section-label{font-size:10px;color:rgba(200,200,220,.6);letter-spacing:.8px;font-weight:700;text-transform:uppercase;margin:14px 0 8px}
-.preset-grid{display:flex;gap:10px;flex-wrap:wrap}
-.preset-swatch-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer}
-.preset-swatch{
-  width:80px;height:50px;border-radius:8px;cursor:pointer;
-  border:2px solid transparent;transition:all .15s;overflow:hidden;
-  flex-shrink:0;
-}
-.preset-swatch:hover,.preset-swatch.active{border-color:#fff;transform:scale(1.05)}
-.preset-swatch img{width:100%;height:100%;object-fit:cover;display:block}
-.preset-swatch-color{width:100%;height:100%}
-.preset-swatch-name{font-size:10px;color:rgba(200,200,220,.7);text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.preset-actions{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
-.preset-label{font-size:10px;color:rgba(200,200,220,.7);margin-bottom:6px;letter-spacing:.5px;font-weight:700}
-/* ── TOPBAR ── */
-.topbar{
-  background:#1a1a2e;color:#fff;padding:10px 20px;
-  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
-  position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.07);
-}
+
+/* TOPBAR */
+.topbar{background:#1a1a2e;color:#fff;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;position:sticky;top:0;z-index:100;border-bottom:1px solid rgba(255,255,255,.07)}
 .topbar-left{display:flex;align-items:center;gap:10px}
-.user-info{display:flex;align-items:center;gap:8px}
 .topbar-right{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
-
-
-.sync-status{
-  display:flex;align-items:center;gap:6px;
-  font-size:11px;padding:4px 10px;border-radius:20px;
-  background:rgba(255,255,255,.1);color:#a0a8c0;
-  transition:all .3s;
-}
+.sync-status{display:flex;align-items:center;gap:6px;font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(255,255,255,.1);color:#a0a8c0;transition:all .3s}
 .sync-dot{width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0}
 .sync-status.saving .sync-dot{background:#facc15;animation:pulse .8s ease-in-out infinite}
 .sync-status.error .sync-dot{background:#f87171}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-
-.btn{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;
-  border:none;cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif;
-}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:hover{background:#a83a22}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;border:none;cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif}
 .btn-secondary{background:rgba(255,255,255,.12);color:#fff}
 .btn-secondary:hover{background:rgba(255,255,255,.22)}
-.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
-.btn-ghost:hover{background:#f0ede8}
 .btn-danger{background:#fdecea;color:var(--accent)}
 .btn-danger:hover{background:#fbd5d0}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:hover{background:#f0ede8}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#a83a22}
 
-/* ── TOOLBAR ── */
-.toolbar{
-  background:var(--card);border-bottom:1px solid var(--border);
-  padding:9px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-}
+/* TOOLBAR */
+.toolbar{background:var(--card);border-bottom:1px solid var(--border);padding:9px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .toolbar-label{font-size:10px;color:var(--muted);font-weight:700;letter-spacing:1px}
-.filter-btn{
-  padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700;
-  border:1.5px solid transparent;cursor:pointer;background:#f0ede8;color:var(--muted);
-  transition:all .15s;display:inline-flex;align-items:center;gap:4px;
-}
+.filter-btn{padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700;border:1.5px solid transparent;cursor:pointer;background:#f0ede8;color:var(--muted);transition:all .15s;display:inline-flex;align-items:center;gap:4px}
 .filter-btn.active,.filter-btn:hover{background:var(--text);color:#fff}
-.filter-btn.active .filter-btn-label,.filter-btn:hover .filter-btn-label{color:#fff}
-.filter-btn-label{
-  outline:none;border:none;background:transparent;
-  font-size:11px;font-weight:700;font-family:'Noto Sans TC',sans-serif;
-  color:inherit;cursor:pointer;min-width:10px;
-}
+.filter-btn-label{outline:none;border:none;background:transparent;font-size:11px;font-weight:700;font-family:'Noto Sans TC',sans-serif;color:inherit;cursor:pointer;min-width:10px}
 .filter-all{background:#e8e4dc;color:#444}
 .filter-all.active,.filter-all:hover{background:var(--text);color:#fff}
 
-/* ── MAIN ── */
-.main{max-width:880px;margin:0 auto;padding:24px 16px 80px}
-.week-label{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin:22px 0 8px 4px}
+/* BUDGET BAR */
+.trip-budget-bar{background:var(--card);border-top:1px solid var(--border);padding:10px 28px;display:none;align-items:center;gap:16px;flex-wrap:wrap;font-size:12px}
+.trip-budget-label{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.5px}
+.trip-budget-amount{font-size:18px;font-weight:700;color:var(--text)}
 
-/* ── DAY CARD ── */
-.day-card{
-  background:var(--card);border-radius:var(--radius);
-  box-shadow:var(--shadow);overflow:hidden;border-left:5px solid #ccc;
-  margin-bottom:10px;transition:box-shadow .2s;
-}
+/* MAIN */
+.main{max-width:880px;margin:0 auto;padding:24px 16px 80px}
+
+/* DAY CARD */
+.day-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;border-left:5px solid #ccc;margin-bottom:10px;transition:box-shadow .2s}
 .day-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.11)}
+.day-card.is-today{box-shadow:0 0 0 2px var(--accent),0 4px 20px rgba(200,75,49,.18)}
 .day-card[data-cat=transit]{border-left-color:var(--cat-transit)}
 .day-card[data-cat=tokyo]{border-left-color:var(--cat-tokyo)}
 .day-card[data-cat=daytrip]{border-left-color:var(--cat-daytrip)}
@@ -193,57 +81,36 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .day-card[data-cat=yokohama]{border-left-color:var(--cat-yokohama)}
 .day-card[data-cat=shopping]{border-left-color:var(--cat-shopping)}
 .day-card[data-cat=free]{border-left-color:var(--cat-free)}
-
-.day-header{
-  display:flex;align-items:center;gap:10px;padding:12px 16px 10px;
-  cursor:pointer;user-select:none;
-}
+.day-header{display:flex;align-items:center;gap:10px;padding:12px 16px 10px;cursor:pointer;user-select:none}
 .day-header:hover{background:#fafaf8}
-.day-num{
-  font-size:10px;font-weight:700;letter-spacing:1px;
-  background:#f0ede8;color:#666;padding:2px 8px;border-radius:12px;white-space:nowrap;
-}
+.day-num{font-size:10px;font-weight:700;letter-spacing:1px;background:#f0ede8;color:#666;padding:2px 8px;border-radius:12px;white-space:nowrap}
 [data-cat=event] .day-num{background:#fdecea;color:var(--accent)}
 [data-cat=daytrip] .day-num{background:#f1ecf8;color:#6b4fa0}
 [data-cat=tokyo] .day-num{background:#eaeffb;color:var(--accent2)}
+.today-badge{display:inline-flex;align-items:center;gap:3px;background:var(--accent);color:#fff;font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 7px;border-radius:10px;flex-shrink:0}
 .day-title-wrap{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
 .day-emoji{font-size:15px;cursor:pointer;flex-shrink:0}
-.day-title-text{
-  font-size:14px;font-weight:700;outline:none;border:none;background:transparent;
-  font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%;
-}
+.day-title-text{font-size:14px;font-weight:700;outline:none;border:none;background:transparent;font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%}
 .day-title-text:focus{background:#f8f6f2;border-radius:4px;padding:1px 6px}
-.cat-select{
-  border:none;background:transparent;font-size:11px;color:var(--muted);
-  cursor:pointer;outline:none;font-family:'Noto Sans TC',sans-serif;padding:2px 4px;
-}
+.cat-select{border:none;background:transparent;font-size:11px;color:var(--muted);cursor:pointer;outline:none;font-family:'Noto Sans TC',sans-serif;padding:2px 4px}
 .cat-select:focus{background:#f0ede8;border-radius:4px}
-.day-date-input{
-  font-size:11px;color:var(--muted);border:none;background:transparent;
-  font-family:'Noto Sans TC',sans-serif;text-align:right;outline:none;width:100px;
-}
+.day-date-input{font-size:11px;color:var(--muted);border:none;background:transparent;font-family:'Noto Sans TC',sans-serif;text-align:right;outline:none;width:100px}
 .day-date-input:focus{background:#f0ede8;border-radius:4px;padding:0 4px}
-.icon-btn{
-  background:none;border:none;cursor:pointer;padding:3px 5px;
-  border-radius:5px;font-size:13px;color:var(--muted);transition:all .12s;
-}
+.icon-btn{background:none;border:none;cursor:pointer;padding:3px 5px;border-radius:5px;font-size:13px;color:var(--muted);transition:all .12s}
 .icon-btn:hover{background:#f0ede8}
 .icon-btn.del:hover{background:#fdecea;color:var(--accent)}
-.collapse-btn{
-  background:none;border:none;cursor:pointer;color:var(--muted);
-  font-size:15px;padding:0 2px;transition:transform .2s;line-height:1;
-}
+.collapse-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:0 2px;transition:transform .2s;line-height:1}
 .day-card.collapsed .collapse-btn{transform:rotate(-90deg)}
 
-/* ── DAY BODY ── */
+/* DAY BODY */
 .day-body{padding:4px 16px 12px;border-top:1px solid var(--border)}
 .day-card.collapsed .day-body{display:none}
+.day-budget-total{display:flex;align-items:center;gap:8px;padding:5px 4px 2px;border-top:1px dashed #ece8e0;margin-top:6px;font-size:11px;color:var(--muted)}
+.day-budget-total strong{color:var(--text);font-size:13px}
+
+/* STOP LIST */
 .stop-list{list-style:none}
-.stop-item{
-  display:flex;align-items:flex-start;gap:8px;padding:6px 4px 8px;
-  border-bottom:1px dashed #f0ede8;position:relative;
-  transition:background .15s;border-radius:6px;flex-wrap:wrap;
-}
+.stop-item{display:flex;align-items:flex-start;gap:8px;padding:6px 4px 8px;border-bottom:1px dashed #f0ede8;position:relative;transition:background .15s;border-radius:6px;flex-wrap:wrap}
 .stop-item:last-child{border-bottom:none}
 .stop-item:hover{background:#fafaf8}
 .stop-item.dragging{opacity:.35}
@@ -251,68 +118,80 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .drag-handle{cursor:grab;color:#ccc;font-size:13px;padding-top:5px;flex-shrink:0;user-select:none}
 .drag-handle:active{cursor:grabbing}
 .stop-icon-wrap{flex-shrink:0;margin-top:2px;position:relative}
-.stop-icon-select{
-  width:26px;height:26px;border-radius:50%;border:none;background:#f0ede8;
-  font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-}
+.stop-icon-select{width:26px;height:26px;border-radius:50%;border:none;background:#f0ede8;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .stop-icon-select:hover{background:#e8e4dc}
 .stop-content{flex:1;min-width:0}
-.stop-name-input{
-  font-size:13px;font-weight:600;border:none;background:transparent;outline:none;
-  font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%;padding:1px 4px;border-radius:4px;
-}
+.stop-name-row{display:flex;align-items:center;gap:4px}
+.stop-name-input{font-size:13px;font-weight:600;border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;color:var(--text);flex:1;padding:1px 4px;border-radius:4px}
 .stop-name-input:focus{background:#f5f3ef}
-.stop-note-input{
-  font-size:11.5px;color:var(--muted);border:none;background:transparent;outline:none;
-  font-family:'Noto Sans TC',sans-serif;width:100%;margin-top:1px;
-  padding:1px 4px;border-radius:4px;resize:none;overflow:hidden;
-  line-height:1.6;min-height:20px;display:block;box-sizing:border-box;
+.map-btn{
+  display:inline-flex;align-items:center;gap:3px;
+  background:#eaf0fe;color:#1a73e8;
+  border:none;border-radius:6px;
+  padding:2px 8px;font-size:11px;font-weight:700;
+  cursor:pointer;text-decoration:none;flex-shrink:0;
+  font-family:'Noto Sans TC',sans-serif;
+  white-space:nowrap;
 }
+.map-btn:hover{background:#d0e0fc}
+.stop-note-input{font-size:11.5px;color:var(--muted);border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;width:100%;margin-top:1px;padding:1px 4px;border-radius:4px;resize:none;overflow:hidden;line-height:1.6;min-height:20px;display:block;box-sizing:border-box}
 .stop-note-input:focus{background:#f5f3ef;color:var(--text)}
 .stop-actions{display:flex;gap:3px;align-items:flex-start;padding-top:4px;opacity:0;transition:opacity .15s;flex-shrink:0}
 .stop-item:hover .stop-actions{opacity:1}
+@media(hover:none){.stop-actions{opacity:1}}
+
+/* STOP EXTRA */
 .stop-extra{width:100%;padding-left:42px;margin-top:4px;display:flex;flex-direction:column;gap:5px}
+
+/* BUDGET ROW */
+.budget-row{display:flex;align-items:center;gap:6px;padding:4px 4px 0;flex-wrap:wrap}
+.budget-item{display:flex;align-items:center;gap:4px;background:#f5f3ef;border-radius:6px;padding:3px 8px;font-size:11.5px}
+.budget-item.twd-item{background:#eaf4ff}
+.budget-label{color:var(--muted);font-size:10px}
+.budget-amount{font-weight:700;color:var(--text);border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;font-size:12px;width:70px;text-align:right}
+.budget-amount:focus{background:#ebe8e0;border-radius:3px;padding:0 3px}
+.budget-currency{font-size:10px;color:var(--muted)}
+.budget-divider{color:#ccc;font-size:12px;user-select:none}
+
+/* STOP FIELDS */
 .stop-field{border:1px solid #ece8e0;border-radius:7px;overflow:hidden;background:#fff}
 .stop-field-header{display:flex;align-items:center;gap:6px;padding:4px 9px;background:#f5f3ef;border-bottom:1px solid #ece8e0}
-.stop-field-label{
-  font-size:10px;font-weight:700;color:#888;letter-spacing:.5px;
-  border:none;background:transparent;outline:none;
-  font-family:'Noto Sans TC',sans-serif;flex:1;
-}
+.stop-field-label{font-size:10px;font-weight:700;color:#888;letter-spacing:.5px;border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;flex:1}
 .stop-field-label:focus{background:#ebe8e0;border-radius:3px;padding:0 4px}
-.stop-field-label::placeholder{font-weight:400;letter-spacing:0}
-.stop-field-body{
-  font-size:12.5px;color:var(--text);border:none;background:transparent;outline:none;
-  font-family:'Noto Sans TC',sans-serif;width:100%;padding:6px 10px;
-  resize:none;overflow:hidden;line-height:1.7;min-height:32px;display:block;box-sizing:border-box;
-}
+.stop-field-body{font-size:12.5px;color:var(--text);border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;width:100%;padding:6px 10px;resize:none;overflow:hidden;line-height:1.7;min-height:32px;display:block;box-sizing:border-box}
 .stop-field-body:focus{background:#fafaf8}
-.stop-field-body::placeholder{color:#ccc}
 .stop-field-del{background:none;border:none;cursor:pointer;color:#ccc;font-size:11px;padding:1px 4px;border-radius:3px;line-height:1;flex-shrink:0}
 .stop-field-del:hover{background:#fdecea;color:var(--accent)}
-.add-stop-field-btn{
-  display:inline-flex;align-items:center;gap:4px;background:none;
-  border:1px dashed #d0cdc5;border-radius:6px;padding:3px 9px;
-  color:#aaa;font-size:11px;cursor:pointer;align-self:flex-start;
-  font-family:'Noto Sans TC',sans-serif;transition:all .15s;
-}
-.add-stop-field-btn:hover{border-color:#9b59b6;color:#6b4fa0;background:#f8f4ff}
-.stop-item:hover .stop-actions{opacity:1}
+
+/* TEMPLATE DROPDOWN */
+.stop-template-wrap{position:relative;display:inline-block}
+.add-stop-field-btn{display:inline-flex;align-items:center;gap:4px;background:none;border:1px dashed #d0cdc5;border-radius:6px;padding:3px 9px;color:#aaa;font-size:11px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .15s}
+.add-stop-field-btn:hover{border-color:var(--accent2);color:var(--accent2);background:#eaf0fe}
+.stop-template-dropdown{position:absolute;bottom:calc(100% + 6px);left:0;z-index:300;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);overflow:hidden;width:230px}
+.stop-template-dropdown.hidden{display:none}
+.stop-tpl-header{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);padding:8px 12px 4px;text-transform:uppercase}
+.stop-tpl-item{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:12px;font-family:'Noto Sans TC',sans-serif;color:var(--text);transition:background .1s;width:100%;background:none;border:none;text-align:left;border-bottom:1px solid var(--border)}
+.stop-tpl-item:last-child{border-bottom:none}
+.stop-tpl-item:hover{background:#f0ede8}
+.stop-tpl-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.tpl-name{font-weight:700;flex:1}
+.tpl-fields{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
+
+/* TRANSIT */
+.transit-row{display:flex;align-items:center;gap:6px;padding:2px 4px}
+.transit-badge{display:inline-flex;align-items:center;gap:4px;background:#eaf0fe;color:#2563eb;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .15s}
+.transit-badge:hover{background:#d0e0fc}
+.transit-time-input{font-size:11px;color:#2563eb;font-weight:700;border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;width:60px;border-bottom:1px dashed #93b4f0}
+.add-transit-btn{display:inline-flex;align-items:center;gap:3px;background:none;border:1px dashed #c8d8f8;border-radius:10px;padding:2px 8px;color:#93b4f0;font-size:10px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;transition:all .15s}
+.add-transit-btn:hover{border-color:#3a5a8c;color:#3a5a8c;background:#eaf0fe}
+
+/* TIP BOX */
 .tip-row{margin-top:8px;display:flex;align-items:flex-start;gap:8px}
-.tip-box-editable{
-  background:#fffbea;border:1px solid #f8e68a;border-left:3px solid #f0d040;
-  border-radius:8px;padding:7px 11px;font-size:12px;color:#7a6500;flex:1;
-  outline:none;min-height:30px;word-break:break-word;
-}
+.tip-box-editable{background:#fffbea;border:1px solid #f8e68a;border-left:3px solid #f0d040;border-radius:8px;padding:7px 11px;font-size:12px;color:#7a6500;flex:1;outline:none;min-height:30px;word-break:break-word}
 .tip-box-editable:focus{background:#fff9e0}
 .tip-box-editable:empty::before{content:attr(data-placeholder);color:#c8b84a}
-.add-stop-btn{
-  display:flex;align-items:center;gap:5px;background:none;
-  border:1.5px dashed #d8d4cc;border-radius:8px;padding:6px 12px;
-  color:var(--muted);font-size:12px;cursor:pointer;margin-top:7px;width:100%;
-  font-family:'Noto Sans TC',sans-serif;transition:all .15s;
-}
-.add-stop-btn:hover{border-color:var(--accent2);color:var(--accent2);background:#f0f4fb}
+
+/* DAY FIELDS */
 .custom-fields{margin-top:8px;display:flex;flex-direction:column;gap:6px}
 .custom-field{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fafaf8}
 .custom-field-header{display:flex;align-items:center;gap:6px;padding:5px 10px;background:#f3f1ec;border-bottom:1px solid var(--border)}
@@ -321,364 +200,184 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .custom-field-label::placeholder{text-transform:none}
 .custom-field-body{font-size:13px;color:var(--text);border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;width:100%;padding:7px 10px;resize:none;overflow:hidden;line-height:1.7;min-height:36px;display:block;box-sizing:border-box}
 .custom-field-body:focus{background:#f5f3ef}
-.custom-field-body:empty::before{content:attr(data-placeholder);color:#bbb}
 .field-del-btn{background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:2px 4px;border-radius:4px;line-height:1;flex-shrink:0}
 .field-del-btn:hover{background:#fdecea;color:var(--accent)}
 .add-field-btn{display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:5px 12px;color:var(--muted);font-size:11px;cursor:pointer;margin-top:4px;font-family:'Noto Sans TC',sans-serif;transition:all .15s}
 .add-field-btn:hover{border-color:#9b59b6;color:#6b4fa0;background:#f8f4ff}
+.add-stop-btn{display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:6px 12px;color:var(--muted);font-size:12px;cursor:pointer;margin-top:7px;width:100%;font-family:'Noto Sans TC',sans-serif;transition:all .15s}
+.add-stop-btn:hover{border-color:var(--accent2);color:var(--accent2);background:#f0f4fb}
 .add-day-wrap{max-width:880px;margin:0 auto 40px;padding:0 16px}
-.add-day-btn{
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  background:none;border:2px dashed #d8d4cc;border-radius:var(--radius);
-  padding:14px;color:var(--muted);font-size:13px;cursor:pointer;width:100%;
-  font-family:'Noto Sans TC',sans-serif;transition:all .15s;
-}
+.add-day-btn{display:flex;align-items:center;justify-content:center;gap:8px;background:none;border:2px dashed #d8d4cc;border-radius:var(--radius);padding:14px;color:var(--muted);font-size:13px;cursor:pointer;width:100%;font-family:'Noto Sans TC',sans-serif;transition:all .15s}
 .add-day-btn:hover{border-color:var(--accent);color:var(--accent);background:#fdf5f3}
 
+/* EMOJI PICKER */
+.emoji-picker{position:absolute;z-index:200;left:0;top:32px;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:8px;display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:196px}
+.emoji-picker span{cursor:pointer;font-size:17px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px}
+.emoji-picker span:hover{background:#f0ede8}
 
-/* ── TODAY HIGHLIGHT ── */
-.day-card.is-today{box-shadow:0 0 0 2px var(--accent),0 4px 20px rgba(200,75,49,.18);}
-.today-badge{
-  display:inline-flex;align-items:center;gap:3px;
-  background:var(--accent);color:#fff;
-  font-size:9px;font-weight:700;letter-spacing:.5px;
-  padding:2px 7px;border-radius:10px;flex-shrink:0;
-}
-
-/* ── BUDGET ── */
-.budget-row{
-  display:flex;align-items:center;gap:6px;
-  padding:4px 4px 0;flex-wrap:wrap;
-}
-.budget-item{
-  display:flex;align-items:center;gap:4px;
-  background:#f5f3ef;border-radius:6px;padding:3px 8px;
-  font-size:11.5px;
-}
-.budget-item.twd-item{background:#eaf4ff}
-.budget-label{color:var(--muted);font-size:10px}
-.budget-amount{
-  font-weight:700;color:var(--text);
-  border:none;background:transparent;outline:none;
-  font-family:'Noto Sans TC',sans-serif;
-  font-size:12px;width:70px;text-align:right;
-}
-.budget-amount:focus{background:#ebe8e0;border-radius:3px;padding:0 3px}
-.budget-currency{font-size:10px;color:var(--muted)}
-.budget-divider{color:#ccc;font-size:12px;user-select:none}
-.day-budget-total{
-  display:flex;align-items:center;gap:6px;
-  padding:6px 4px 2px;border-top:1px dashed #ece8e0;margin-top:6px;
-  font-size:11px;color:var(--muted);
-}
-.day-budget-total strong{color:var(--text);font-size:13px}
-.trip-budget-bar{
-  background:var(--card);border-top:1px solid var(--border);
-  padding:10px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;
-  font-size:12px;
-}
-.trip-budget-label{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.5px}
-.trip-budget-amount{font-size:18px;font-weight:700;color:var(--text)}
-.trip-budget-jpy{font-size:11px;color:var(--muted)}
-
-/* ── TRANSIT TIME ── */
-.transit-row{
-  display:flex;align-items:center;gap:6px;padding:2px 4px;
-}
-.transit-badge{
-  display:inline-flex;align-items:center;gap:4px;
-  background:#eaf0fe;color:#2563eb;
-  font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;
-  border:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
-  transition:all .15s;
-}
-.transit-badge:hover{background:#d0e0fc}
-.transit-time-input{
-  font-size:11px;color:#2563eb;font-weight:700;
-  border:none;background:transparent;outline:none;
-  font-family:'Noto Sans TC',sans-serif;width:60px;
-  border-bottom:1px dashed #93b4f0;
-}
-.add-transit-btn{
-  display:inline-flex;align-items:center;gap:3px;
-  background:none;border:1px dashed #c8d8f8;border-radius:10px;
-  padding:2px 8px;color:#93b4f0;font-size:10px;cursor:pointer;
-  font-family:'Noto Sans TC',sans-serif;transition:all .15s;
-}
-.add-transit-btn:hover{border-color:#3a5a8c;color:#3a5a8c;background:#eaf0fe}
-
-/* ── TEMPLATE MODAL ── */
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(2px)}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--card);border-radius:14px;padding:26px;width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal h2{font-size:17px;margin-bottom:16px}
+.modal-fields{display:grid;gap:11px}
+.field label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px;letter-spacing:.5px}
+.field input,.field select{width:100%;padding:8px 11px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);background:var(--bg);outline:none}
+.field input:focus,.field select:focus{border-color:var(--accent2)}
+.modal-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
 .template-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
-.template-btn{
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  padding:10px 6px;border-radius:10px;border:1.5px solid var(--border);
-  background:var(--bg);cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif;
-}
+.template-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px;border-radius:10px;border:1.5px solid var(--border);background:var(--bg);cursor:pointer;transition:all .15s;font-family:'Noto Sans TC',sans-serif}
 .template-btn:hover{border-color:var(--accent2);background:#eaf0fe}
 .template-btn .t-icon{font-size:20px}
 .template-btn .t-name{font-size:11px;font-weight:700;color:var(--text)}
 
-
-/* ── STOP TEMPLATE PICKER ── */
-.stop-template-wrap{position:relative;display:inline-block}
-
-.stop-template-dropdown{
-  position:absolute;bottom:calc(100% + 6px);left:0;z-index:300;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,.18);
-  overflow:hidden;width:230px;
-}
-.stop-template-dropdown.hidden{display:none}
-.stop-tpl-header{
-  font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);
-  padding:8px 12px 4px;text-transform:uppercase;
-}
-.stop-tpl-item{
-  display:flex;align-items:center;gap:8px;
-  padding:8px 12px;cursor:pointer;
-  font-size:12px;font-family:'Noto Sans TC',sans-serif;
-  color:var(--text);transition:background .1s;width:100%;
-  background:none;border:none;text-align:left;border-bottom:1px solid var(--border);
-}
-.stop-tpl-item:last-child{border-bottom:none}
-.stop-tpl-item:hover{background:#f0ede8}
-.stop-tpl-item:hover .tpl-name{color:var(--accent2)}
-.stop-tpl-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
-.tpl-name{font-weight:700;flex:1}
-.tpl-fields{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px}
-
-/* ── MAP BUTTON ── */
-.map-btn{
-  display:inline-flex;align-items:center;gap:3px;
-  background:none;border:none;cursor:pointer;
-  color:#aaa;font-size:12px;padding:1px 4px;border-radius:5px;
-  font-family:'Noto Sans TC',sans-serif;transition:all .15s;
-  text-decoration:none;
-}
-.map-btn:hover{color:#1a73e8;background:#e8f0fe}
-
-/* ── FLOATING TOOLS ── */
-.float-tools{
-  position:fixed;bottom:28px;right:20px;
-  display:flex;flex-direction:column;gap:8px;z-index:200;
-}
-.float-btn{
-  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;font-size:20px;
-  box-shadow:0 4px 16px rgba(0,0,0,.18);transition:all .2s;
-  font-family:'Noto Sans TC',sans-serif;
-}
+/* FLOATING TOOLS */
+.float-tools{position:fixed;bottom:28px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:200}
+.float-btn{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 4px 16px rgba(0,0,0,.18);transition:all .2s}
 .float-btn:hover{transform:scale(1.1)}
 .float-btn-currency{background:#2d7a4f;color:#fff}
 .float-btn-pack{background:#3a5a8c;color:#fff}
 
-/* ── SLIDE PANEL ── */
-.slide-panel{
-  position:fixed;right:0;top:0;bottom:0;width:340px;max-width:95vw;
-  background:var(--card);box-shadow:-8px 0 40px rgba(0,0,0,.15);
-  z-index:500;display:flex;flex-direction:column;
-  transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
-}
+/* SLIDE PANEL */
+.slide-panel{position:fixed;right:0;top:0;bottom:0;width:340px;max-width:95vw;background:var(--card);box-shadow:-8px 0 40px rgba(0,0,0,.15);z-index:500;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
 .slide-panel.open{transform:translateX(0)}
-.slide-panel-header{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;
-}
+.slide-panel-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
 .slide-panel-title{font-size:15px;font-weight:700}
 .slide-close{background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:2px 6px;border-radius:6px}
 .slide-close:hover{background:#f0ede8}
 .slide-panel-body{flex:1;overflow-y:auto;padding:16px 20px}
 
-/* ── CURRENCY ── */
-.currency-display{
-  background:linear-gradient(135deg,#1a4a2e,#2d7a4f);
-  border-radius:14px;padding:20px;color:#fff;margin-bottom:16px;text-align:center;
-}
+/* CURRENCY */
+.currency-display{background:linear-gradient(135deg,#1a4a2e,#2d7a4f);border-radius:14px;padding:20px;color:#fff;margin-bottom:16px;text-align:center}
 .currency-result{font-size:32px;font-weight:700;margin:6px 0 2px}
 .currency-sub{font-size:12px;opacity:.75}
 .currency-inputs{display:grid;gap:10px}
 .currency-row{display:flex;align-items:center;gap:8px}
 .currency-flag{font-size:20px;flex-shrink:0}
 .currency-input-wrap{flex:1;position:relative}
-.currency-input{
-  width:100%;padding:10px 12px;border-radius:10px;
-  border:1.5px solid var(--border);font-size:16px;font-weight:700;
-  font-family:'Noto Sans TC',sans-serif;color:var(--text);
-  background:var(--bg);outline:none;text-align:right;
-}
+.currency-input{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);font-size:16px;font-weight:700;font-family:'Noto Sans TC',sans-serif;color:var(--text);background:var(--bg);outline:none;text-align:right}
 .currency-input:focus{border-color:#2d7a4f}
-.currency-unit{
-  font-size:11px;color:var(--muted);font-weight:700;
-  position:absolute;left:10px;top:50%;transform:translateY(-50%);
-}
+.currency-unit{font-size:11px;color:var(--muted);font-weight:700;position:absolute;left:10px;top:50%;transform:translateY(-50%)}
 .rate-note{font-size:11px;color:var(--muted);text-align:center;margin-top:10px}
 .rate-input-row{display:flex;align-items:center;gap:6px;margin-top:8px;justify-content:center}
-.rate-input{
-  width:70px;padding:4px 8px;border-radius:7px;border:1.5px solid var(--border);
-  font-size:13px;font-family:'Noto Sans TC',sans-serif;text-align:center;
-  background:var(--bg);outline:none;color:var(--text);
-}
+.rate-input{width:70px;padding:4px 8px;border-radius:7px;border:1.5px solid var(--border);font-size:13px;font-family:'Noto Sans TC',sans-serif;text-align:center;background:var(--bg);outline:none;color:var(--text)}
 .rate-input:focus{border-color:#2d7a4f}
 
-/* ── PACKING LIST ── */
+/* PACKING */
 .pack-section{margin-bottom:14px}
-.pack-section-title{
-  font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--muted);
-  text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px;
-}
-.pack-item{
-  display:flex;align-items:center;gap:9px;
-  padding:7px 4px;border-bottom:1px solid #f0ede8;
-}
+.pack-section-title{font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.pack-item{display:flex;align-items:center;gap:9px;padding:7px 4px;border-bottom:1px solid #f0ede8}
 .pack-item:last-child{border-bottom:none}
-.pack-check{
-  width:18px;height:18px;border-radius:5px;border:2px solid #d0cdc5;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  flex-shrink:0;transition:all .15s;background:#fff;
-}
+.pack-check{width:18px;height:18px;border-radius:5px;border:2px solid #d0cdc5;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;background:#fff}
 .pack-check.checked{background:var(--green);border-color:var(--green)}
 .pack-check.checked::after{content:'✓';color:#fff;font-size:11px;font-weight:700}
-.pack-label{
-  flex:1;font-size:13px;font-family:'Noto Sans TC',sans-serif;
-  border:none;background:transparent;outline:none;color:var(--text);
-}
+.pack-label{flex:1;font-size:13px;font-family:'Noto Sans TC',sans-serif;border:none;background:transparent;outline:none;color:var(--text)}
 .pack-label.checked-text{text-decoration:line-through;color:var(--muted)}
 .pack-del{background:none;border:none;cursor:pointer;color:#ccc;font-size:12px;padding:2px 5px;border-radius:4px}
 .pack-del:hover{background:#fdecea;color:var(--accent)}
 .pack-add-row{display:flex;gap:6px;margin-top:8px}
-.pack-add-input{
-  flex:1;padding:7px 11px;border-radius:8px;border:1.5px solid var(--border);
-  font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);
-  background:var(--bg);outline:none;
-}
+.pack-add-input{flex:1;padding:7px 11px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);background:var(--bg);outline:none}
 .pack-add-input:focus{border-color:var(--accent2)}
-.pack-add-btn{
-  padding:7px 13px;border-radius:8px;border:none;
-  background:var(--accent2);color:#fff;font-size:12px;font-weight:700;
-  cursor:pointer;font-family:'Noto Sans TC',sans-serif;
-}
-.pack-progress{
-  background:#f0ede8;border-radius:20px;height:6px;margin:10px 0 14px;overflow:hidden;
-}
-.pack-progress-bar{
-  height:100%;background:var(--green);border-radius:20px;transition:width .3s;
-}
-.pack-stats{font-size:11px;color:var(--muted);text-align:right;margin-top:-10px;margin-bottom:10px}
-/* ── EMOJI PICKER ── */
-.emoji-picker{
-  position:absolute;z-index:200;left:0;top:32px;
-  background:var(--card);border:1px solid var(--border);
-  border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);
-  padding:8px;display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:196px;
-}
-.emoji-picker span{
-  cursor:pointer;font-size:17px;width:26px;height:26px;
-  display:flex;align-items:center;justify-content:center;border-radius:5px;
-}
-.emoji-picker span:hover{background:#f0ede8}
+.pack-add-btn{padding:7px 13px;border-radius:8px;border:none;background:var(--accent2);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif}
+.pack-progress{background:#f0ede8;border-radius:20px;height:6px;margin:10px 0 4px;overflow:hidden}
+.pack-progress-bar{height:100%;background:var(--green);border-radius:20px;transition:width .3s}
+.pack-stats{font-size:11px;color:var(--muted);text-align:right;margin-bottom:10px}
 
-/* ── MODAL ── */
-.modal-overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.45);
-  display:flex;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(2px);
-}
-.modal-overlay.hidden{display:none}
-.modal{background:var(--card);border-radius:14px;padding:26px;width:460px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2)}
-.modal h2{font-size:17px;margin-bottom:16px}
-.modal-fields{display:grid;gap:11px}
-.field label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:4px;letter-spacing:.5px}
-.field input,.field select{
-  width:100%;padding:8px 11px;border-radius:8px;border:1.5px solid var(--border);
-  font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);background:var(--bg);outline:none;
-}
-.field input:focus,.field select:focus{border-color:var(--accent2)}
-.modal-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
 
-/* ── TOAST ── */
-.toast{
-  position:fixed;bottom:24px;right:24px;background:#1e1d1a;color:#fff;
-  padding:9px 16px;border-radius:10px;font-size:13px;font-weight:500;
-  box-shadow:0 4px 20px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;
-  transition:all .3s;z-index:9999;
-}
+/* ── LEDGER ── */
+.float-btn-ledger{background:#7c3aed;color:#fff}
+.ledger-hero{background:linear-gradient(135deg,#4c1d95,#7c3aed);border-radius:14px;padding:20px;color:#fff;margin-bottom:16px}
+.ledger-hero-label{font-size:11px;opacity:.75;margin-bottom:4px}
+.ledger-budget-row{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.ledger-budget-num{font-size:28px;font-weight:700}
+.ledger-bar-wrap{background:rgba(255,255,255,.2);border-radius:20px;height:8px;overflow:hidden;margin-bottom:6px}
+.ledger-bar{height:100%;background:#fff;border-radius:20px;transition:width .4s}
+.ledger-bar.over{background:#f87171}
+.ledger-stats{display:flex;justify-content:space-between;font-size:11px;opacity:.85}
+.ledger-budget-input-row{display:flex;align-items:center;gap:8px;margin-top:10px;background:rgba(255,255,255,.15);border-radius:8px;padding:7px 12px}
+.ledger-budget-input{flex:1;background:transparent;border:none;outline:none;color:#fff;font-size:15px;font-weight:700;font-family:'Noto Sans TC',sans-serif;width:100%}
+.ledger-budget-input::placeholder{color:rgba(255,255,255,.5)}
+.ledger-section-title{font-size:10px;font-weight:700;letter-spacing:.5px;color:var(--muted);text-transform:uppercase;margin:14px 0 8px}
+.ledger-entry{display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f0ede8}
+.ledger-entry:last-child{border-bottom:none}
+.ledger-entry-icon{font-size:14px;flex-shrink:0;width:22px;text-align:center}
+.ledger-entry-name{flex:1;font-size:12.5px;border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;color:var(--text)}
+.ledger-entry-name:focus{background:#f5f3ef;border-radius:4px;padding:0 4px}
+.ledger-entry-amount{font-size:13px;font-weight:700;color:#7c3aed;border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;width:80px;text-align:right}
+.ledger-entry-amount:focus{background:#f5f3ef;border-radius:4px;padding:0 4px}
+.ledger-entry-curr{font-size:10px;color:var(--muted);flex-shrink:0}
+.ledger-entry-del{background:none;border:none;cursor:pointer;color:#ccc;font-size:11px;padding:2px 4px;border-radius:4px;flex-shrink:0}
+.ledger-entry-del:hover{background:#fdecea;color:var(--accent)}
+.ledger-add-row{display:flex;gap:6px;margin-top:8px}
+.ledger-add-input{flex:1;padding:7px 11px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);background:var(--bg);outline:none}
+.ledger-add-input:focus{border-color:#7c3aed}
+.ledger-add-amount{width:90px;padding:7px 11px;border-radius:8px;border:1.5px solid var(--border);font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);background:var(--bg);outline:none;text-align:right}
+.ledger-add-amount:focus{border-color:#7c3aed}
+.ledger-add-btn{padding:7px 13px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;white-space:nowrap}
+.ledger-cat-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.ledger-cat-tab{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;border:1.5px solid transparent;cursor:pointer;background:#f0ede8;color:var(--muted);font-family:'Noto Sans TC',sans-serif;transition:all .15s}
+.ledger-cat-tab.active{background:#7c3aed;color:#fff}
+.ledger-empty{text-align:center;padding:20px;font-size:12px;color:var(--muted)}
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:#1e1d1a;color:#fff;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
 .toast.show{transform:translateY(0);opacity:1}
 
-/* ── HIDDEN ── */
 .hidden{display:none!important}
-
-@media(max-width:600px){
-  .topbar{padding:10px 12px}
-  .cover-title{font-size:22px}
-  .cover-body{padding:20px 16px 16px}
-  .main{padding:16px 10px 60px}
-  .toolbar{padding:8px 14px}
-  .user-name{display:none}
-}
+@media(max-width:600px){.topbar{padding:10px 12px}.cover-title{font-size:22px}.cover-body{padding:20px 16px 16px}.main{padding:16px 10px 60px}.toolbar{padding:8px 14px}}
 </style>
 </head>
 <body>
 
-<!-- LOADING -->
-<div id="loading-screen" class="hidden">
+<div id="loading-screen">
   <div class="spinner"></div>
   <span style="font-size:13px;color:var(--muted)">載入行程中…</span>
 </div>
 
-<!-- APP -->
 <div id="app">
-  <!-- COVER -->
   <div class="cover" id="cover">
-    <img class="cover-img" id="coverImg" src="https://d1vqr0cheeo2qs.cloudfront.net/zh-hant/articles/title_images/000/027/786/original/pixta_21862331_s.jpg?2019&d=750x400" alt="封面" style="display:block">
+    <img class="cover-img" id="coverImg" src="https://d1vqr0cheeo2qs.cloudfront.net/zh-hant/articles/title_images/000/027/786/original/pixta_21862331_s.jpg?2019&d=750x400" alt="封面">
     <div class="cover-overlay"></div>
     <div class="cover-body">
-      <div class="cover-text">
-        <input class="cover-title" id="coverTitle" placeholder="行程標題" value="✈ 東京獨旅行程"
-          onchange="saveMeta()" oninput="saveMeta()">
-        <input class="cover-subtitle" id="coverSubtitle" placeholder="副標題（如年份、日期）" value="2026 JAPAN TRIP"
-          onchange="saveMeta()" oninput="saveMeta()">
+      <div style="width:100%">
+        <input class="cover-title" id="coverTitle" placeholder="行程標題" value="✈ 東京獨旅行程" oninput="saveMeta()">
+        <input class="cover-subtitle" id="coverSubtitle" placeholder="副標題" value="2026 JAPAN TRIP" oninput="saveMeta()">
       </div>
     </div>
   </div>
-<!-- TOPBAR -->
+
   <div class="topbar">
     <div class="topbar-left">
-      <div class="sync-status" id="syncStatus">
-        <div class="sync-dot"></div>
-        <span id="syncText">已同步</span>
-      </div>
-
+      <div class="sync-status" id="syncStatus"><div class="sync-dot"></div><span id="syncText">已同步</span></div>
     </div>
     <div class="topbar-right">
-      <button class="btn btn-secondary" onclick="addDay()">＋ 新增天數</button>
-      <button class="btn btn-secondary" onclick="collapseAll()">收合</button>
-      <button class="btn btn-danger" onclick="signOut()" style="font-size:11px">登出</button>
+      <button class="btn btn-secondary" id="addDayBtn">＋ 新增天數</button>
+      <button class="btn btn-secondary" id="collapseAllBtn">收合</button>
     </div>
   </div>
 
   <div class="toolbar" id="toolbar">
     <span class="toolbar-label">天數</span>
     <div id="day-filters" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"></div>
-    <span style="margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap">✏️ 點擊文字直接編輯・拖曳排序・自動雲端同步</span>
+    <span style="margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap">✏️ 點擊文字直接編輯・拖曳排序</span>
   </div>
 
   <div class="trip-budget-bar" id="tripBudgetBar"></div>
   <div class="main" id="main"></div>
-  <div class="add-day-wrap">
-    <button class="add-day-btn" onclick="addDay()">＋ 新增一天</button>
-  </div>
+  <div class="add-day-wrap"><button class="add-day-btn" id="addDayBtn2">＋ 新增一天</button></div>
 </div>
 
-<!-- Floating tool buttons -->
+<!-- Floating buttons -->
 <div class="float-tools">
-  <button class="float-btn float-btn-pack" onclick="togglePanel('packPanel')" title="打包清單">🎒</button>
-  <button class="float-btn float-btn-currency" onclick="togglePanel('currencyPanel')" title="匯率換算">💴</button>
+  <button class="float-btn float-btn-pack" id="packBtn" title="打包清單">🎒</button>
+  <button class="float-btn float-btn-currency" id="currencyBtn" title="匯率換算">💴</button>
+  <button class="float-btn float-btn-ledger" id="ledgerBtn" title="旅行記帳">💰</button>
 </div>
 
 <!-- Currency Panel -->
 <div class="slide-panel" id="currencyPanel">
   <div class="slide-panel-header">
     <span class="slide-panel-title">💴 匯率換算</span>
-    <button class="slide-close" onclick="closePanel('currencyPanel')">✕</button>
+    <button class="slide-close" id="closeCurrencyBtn">✕</button>
   </div>
   <div class="slide-panel-body">
     <div class="currency-display">
@@ -691,32 +390,24 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
         <span class="currency-flag">🇯🇵</span>
         <div class="currency-input-wrap">
           <span class="currency-unit">¥</span>
-          <input class="currency-input" id="jpyInput" type="number" placeholder="0"
-            style="padding-left:28px" oninput="calcCurrency('jpy')">
+          <input class="currency-input" id="jpyInput" type="number" placeholder="0" style="padding-left:28px">
         </div>
       </div>
       <div class="currency-row">
         <span class="currency-flag">🇹🇼</span>
         <div class="currency-input-wrap">
           <span class="currency-unit">NT$</span>
-          <input class="currency-input" id="twdInput" type="number" placeholder="0"
-            style="padding-left:40px" oninput="calcCurrency('twd')">
+          <input class="currency-input" id="twdInput" type="number" placeholder="0" style="padding-left:40px">
         </div>
       </div>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-      <div class="rate-note" style="margin:0" id="rateNote">目前匯率</div>
-      <button onclick="fetchLiveRate()" id="refreshRateBtn"
-        style="font-size:11px;background:none;border:1px solid var(--border);border-radius:6px;
-        padding:3px 8px;cursor:pointer;color:var(--muted);font-family:'Noto Sans TC',sans-serif;
-        display:flex;align-items:center;gap:4px;">
-        <span id="refreshIcon">🔄</span> 更新即時匯率
-      </button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;margin-bottom:4px">
+      <div class="rate-note" id="rateNote" style="margin:0">目前匯率</div>
+      <button id="refreshRateBtn" style="font-size:11px;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;color:var(--muted);font-family:'Noto Sans TC',sans-serif;display:flex;align-items:center;gap:4px"><span id="refreshIcon">🔄</span> 更新即時匯率</button>
     </div>
     <div class="rate-input-row">
       <span style="font-size:12px;color:var(--muted)">1 JPY =</span>
-      <input class="rate-input" id="rateInput" type="number" value="0.221" step="0.001"
-        oninput="calcCurrency('rate');saveRate()">
+      <input class="rate-input" id="rateInput" type="number" value="0.221" step="0.001">
       <span style="font-size:12px;color:var(--muted)">TWD</span>
     </div>
     <div id="rateSource" style="font-size:10px;color:var(--muted);text-align:center;margin-top:4px"></div>
@@ -731,27 +422,24 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 <div class="slide-panel" id="packPanel">
   <div class="slide-panel-header">
     <span class="slide-panel-title">🎒 打包清單</span>
-    <button class="slide-close" onclick="closePanel('packPanel')">✕</button>
+    <button class="slide-close" id="closePackBtn">✕</button>
   </div>
-  <div class="slide-panel-body" id="packBody">
-  </div>
+  <div class="slide-panel-body" id="packBody"></div>
 </div>
 
-<!-- Panel Overlay -->
-<div id="panelOverlay" style="display:none;position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.3);backdrop-filter:blur(1px)" onclick="closeAllPanels()"></div>
 
-<!-- Template Modal -->
-<div class="modal-overlay hidden" id="templateModalOverlay">
-  <div class="modal" style="width:380px">
-    <h2>選擇行程類型</h2>
-    <div class="template-grid" id="templateGrid"></div>
-    <div class="modal-actions" style="margin-top:16px">
-      <button class="btn btn-ghost" onclick="closeTemplateModal()">取消</button>
-    </div>
+<!-- Ledger Panel -->
+<div class="slide-panel" id="ledgerPanel">
+  <div class="slide-panel-header">
+    <span class="slide-panel-title">💰 旅行記帳</span>
+    <button class="slide-close" id="closeLedgerBtn">✕</button>
   </div>
+  <div class="slide-panel-body" id="ledgerBody"></div>
 </div>
 
-<!-- Modal -->
+<div id="panelOverlay" style="display:none;position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.3);backdrop-filter:blur(1px)"></div>
+
+<!-- Add Day Modal -->
 <div class="modal-overlay hidden" id="modalOverlay">
   <div class="modal">
     <h2>新增天數</h2>
@@ -761,31 +449,37 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
       <div class="field"><label>日期</label><input id="mDate" placeholder="5月22日（五）"></div>
       <div class="field"><label>類別</label>
         <select id="mCat">
-          <option value="transit">抵返</option>
-          <option value="tokyo" selected>東京市區</option>
-          <option value="daytrip">近郊一日遊</option>
-          <option value="event">演唱會</option>
-          <option value="yokohama">橫濱</option>
-          <option value="shopping">採買</option>
+          <option value="transit">抵返</option><option value="tokyo" selected>東京市區</option>
+          <option value="daytrip">近郊一日遊</option><option value="event">演唱會</option>
+          <option value="yokohama">橫濱</option><option value="shopping">採買</option>
           <option value="free">待規劃</option>
         </select>
       </div>
       <div class="field"><label>Emoji</label><input id="mEmoji" placeholder="🗺️" maxlength="2" style="width:60px"></div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="confirmAddDay()">新增</button>
+      <button class="btn btn-ghost" id="cancelAddDay">取消</button>
+      <button class="btn btn-primary" id="confirmAddDay">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- Template Modal -->
+<div class="modal-overlay hidden" id="templateModalOverlay">
+  <div class="modal" style="width:380px">
+    <h2>選擇行程類型</h2>
+    <div class="template-grid" id="templateGrid"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-ghost" id="cancelTemplate">取消</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAkrAu5xfFFmziSfs2zDyEH3iz76XP6se0",
@@ -793,51 +487,136 @@ const firebaseConfig = {
   projectId: "trip-2e770",
   storageBucket: "trip-2e770.firebasestorage.app",
   messagingSenderId: "641554922456",
-  appId: "1:641554922456:web:e181fdc7ff975dd07090ad",
-  measurementId: "G-ZWZ1QV20J6"
+  appId: "1:641554922456:web:e181fdc7ff975dd07090ad"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const TRIP_DOC_ID = 'main-trip';
+const TRIP_START = '2026-05-08';
 
-// ── PASSWORD CONFIG ──
+const EMOJIS = ['⛩️','🗼','🌸','🛍️','🍜','🎌','🏯','🚆','✈️','🌊','🎤','🎡','🎎','🏮','🍣','🎶','🗽','🛒','🏨','🌿','🎠','🏗️','🥩','⚡','🎮','🌈','🧸','💊','🌙','🍡','🔔','🌺','☕','🎨','🎯','🪔'];
+const TEMPLATES = [
+  {icon:'⛩️',name:'神社',fields:[{label:'參拜時間',body:''},{label:'御守購買',body:''}]},
+  {icon:'🍜',name:'餐廳',fields:[{label:'訂位資訊',body:''},{label:'必點料理',body:''}]},
+  {icon:'🛍️',name:'購物',fields:[{label:'購物清單',body:''},{label:'預算上限',body:''}]},
+  {icon:'🚆',name:'交通',fields:[{label:'路線',body:''},{label:'票價',body:''}]},
+  {icon:'🏨',name:'住宿',fields:[{label:'Check-in',body:''},{label:'地址',body:''}]},
+  {icon:'🎡',name:'景點',fields:[{label:'開放時間',body:''},{label:'票價',body:''}]},
+  {icon:'📝',name:'空白',fields:[]},
+];
+const DEFAULT_PACK = {sections:[
+  {id:'ps1',name:'證件與金融',items:[{id:'pi1',label:'護照',checked:false},{id:'pi2',label:'信用卡',checked:false},{id:'pi3',label:'備用現金',checked:false}]},
+  {id:'ps2',name:'3C 與充電',items:[{id:'pi4',label:'手機',checked:false},{id:'pi5',label:'充電線',checked:false},{id:'pi6',label:'行動電源',checked:false},{id:'pi7',label:'變壓器',checked:false}]},
+  {id:'ps3',name:'衣物',items:[{id:'pi8',label:'上衣 × 天數',checked:false},{id:'pi9',label:'外套',checked:false},{id:'pi10',label:'舒適步行鞋',checked:false}]},
+  {id:'ps4',name:'盥洗與藥品',items:[{id:'pi11',label:'牙刷牙膏',checked:false},{id:'pi12',label:'防曬乳',checked:false},{id:'pi13',label:'感冒藥',checked:false},{id:'pi14',label:'腸胃藥',checked:false}]},
+  {id:'ps5',name:'其他',items:[{id:'pi15',label:'Suica / IC 卡',checked:false},{id:'pi16',label:'雨傘',checked:false},{id:'pi17',label:'環保袋',checked:false}]},
+]};
 
-
-window.signOut = () => {
-  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-  document.getElementById('app').style.display = 'none';
+const DEFAULT_DATA = {
+  meta:{title:'✈ 東京獨旅行程',subtitle:'2026 JAPAN TRIP',coverUrl:'',customRate:0.221},
+  days:[
+    {id:'d1',num:'D1',emoji:'🛬',title:'抵達日',date:'5月8日（五）',cat:'transit',tip:'',stops:[
+      {id:'s1',icon:'✈️',name:'成田機場抵達',note:'辦理入境、取行李、購買 Suica 或 IC 卡'},
+      {id:'s2',icon:'🚆',name:'成田機場 → 上野',note:'京成本線（特急）約 70 分鐘，或 Skyliner 約 41 分'},
+      {id:'s3',icon:'🏨',name:'Vessel Inn 上野入谷 入住',note:'放好行李，便利商店採買晚餐'}]},
+    {id:'d2',num:'D2',emoji:'⛩️',title:'新宿・新大久保',date:'5月9日（六）',cat:'tokyo',tip:'💡 大久保站和新宿站步行距離約 15 分鐘，可以用走的。',stops:[
+      {id:'s4',icon:'⛩️',name:'東京大神宮',note:'入谷 → 日比谷線 → 上野 → JR山手線 → 秋葉原 → JR中央總武線 → 飯田橋，出西口步行 5 分'},
+      {id:'s5',icon:'⛩️',name:'皆中稻荷神社',note:'JR中央總武線 飯田橋 → 大久保，北口出站步行約 1 分'},
+      {id:'s6',icon:'🛍️',name:'新大久保韓國街',note:'步行，吃喝逛街'},
+      {id:'s7',icon:'🛒',name:'唐吉訶德 新宿東南口店',note:'步行 or 搭 JR 山手線至新宿'},
+      {id:'s8',icon:'🍗',name:'鳥貴族 新宿南口店',note:'晚餐'},
+      {id:'s9',icon:'🏨',name:'返回飯店',note:'JR 山手線 外環 → 上野，換地鐵回入谷'}]},
+    {id:'d3',num:'D3',emoji:'🌿',title:'原宿・中目黑・東京鐵塔',date:'5月10日（日）',cat:'tokyo',tip:'💡 動線：原宿 → 池袋 → 目黑 → 東京鐵塔，沿山手線外圈移動再下來，省約 40 分鐘。',stops:[
+      {id:'s10',icon:'⛩️',name:'明治神宮（上午）',note:'入谷 → 日比谷線 → 表參道 → 步行至原宿，早上參拜人少'},
+      {id:'s11',icon:'🧸',name:'KIDDY LAND（表參道）',note:'步行，明治神宮 → 竹下通 → 表參道，全在同區'},
+      {id:'s12',icon:'⚡',name:'哈利波特旗艦店（池袋）',note:'搭 JR 山手線 原宿 → 池袋'},
+      {id:'s13',icon:'🌸',name:'目黑川散步（黃昏前）',note:'池袋 → JR山手線 → 目黑站，步行沿河岸走'},
+      {id:'s14',icon:'🗼',name:'東京鐵塔（黃昏夜景）',note:'目黑 → 地鐵南北線 → 麻布十番步行。建議 18:00 後抵達'},
+      {id:'s15',icon:'🏨',name:'返回飯店',note:'神谷町 → 日比谷線 → 入谷'}]},
+    {id:'d4',num:'D4',emoji:'🏮',title:'淺草・晴空塔',date:'5月11日（一）',cat:'tokyo',tip:'💡 路線最順的一天！淺草 → 隅田川 → 晴空塔全在步行範圍內。',stops:[
+      {id:'s16',icon:'⛩️',name:'淺草寺（上午）',note:'入谷 → 日比谷線 → 仲御徒町，換銀座線 → 淺草。早上人少'},
+      {id:'s17',icon:'🪔',name:'錢塚地藏堂',note:'步行，淺草寺附近'},
+      {id:'s18',icon:'🌊',name:'隅田川公園散步',note:'步行沿河邊走，往晴空塔方向'},
+      {id:'s19',icon:'🗽',name:'東京晴空塔',note:'步行約 10 分，可選展望台。Solamachi 商場也很好逛'},
+      {id:'s20',icon:'🥩',name:'燒肉KING 淺草ROX',note:'晚餐'},
+      {id:'s21',icon:'🏨',name:'返回飯店',note:''}]},
+    {id:'d5',num:'D5',emoji:'🎮',title:'日本橋・秋葉原・上野',date:'5月12日（二）',cat:'tokyo',tip:'💡 動線：日本橋（南）→ 秋葉原 → 上野（北），一路向北，不折返。',stops:[
+      {id:'s22',icon:'⛩️',name:'小網神社（開門前到）',note:'入谷 → 日比谷線 → 人形町站，步行約 5 分'},
+      {id:'s23',icon:'⛩️',name:'福德神社',note:'步行，兩社間約 7 分鐘'},
+      {id:'s24',icon:'🎮',name:'秋葉原：壽屋・Animate・Mandarake',note:'人形町 → 日比谷線 → 秋葉原'},
+      {id:'s25',icon:'🧸',name:'上野：Yamashiroya',note:'秋葉原 → JR 山手線 → 上野，步行至上野站旁'},
+      {id:'s26',icon:'🛒',name:'阿美橫町',note:'步行，Yamashiroya 斜對面即是'},
+      {id:'s27',icon:'🏨',name:'返回飯店',note:'步行或搭地鐵回入谷'}]},
+    {id:'d6',num:'D6',emoji:'🏯',title:'川越市一日遊',date:'5月13日（三）',cat:'daytrip',tip:'💡 務必搭「急行」，比準急快約 20 分鐘。',stops:[
+      {id:'s28',icon:'🚆',name:'往川越（建議 8:30 前出發）',note:'入谷 → 日比谷線 → 上野 → JR山手線 → 池袋 → 東武東上線「急行」→ 川越（約 30-35 分）'},
+      {id:'s29',icon:'⛩️',name:'冰川神社',note:'川越站步行約 20 分，或搭巴士'},
+      {id:'s30',icon:'🔔',name:'時之鐘',note:'藏造老街核心地標'},
+      {id:'s31',icon:'🍡',name:'藏造老街・菓子屋橫丁',note:'邊走邊吃，地瓜零食、冰淇淋必嘗'},
+      {id:'s32',icon:'🚆',name:'返回東京（約 16:00）',note:'東武東上線急行回池袋，可順道逛 Sunshine City'}]},
+    {id:'d7',num:'D7',emoji:'🌊',title:'江之島・鎌倉一日遊',date:'5月14日（四）',cat:'daytrip',tip:'💡 改為「江之島先、鎌倉後」，回程從鎌倉直接搭 JR 回東京，省時。',stops:[
+      {id:'s33',icon:'🚆',name:'往江之島（建議 8:00 前出發）',note:'上野 → JR 湘南新宿線 → 藤澤 → 江之電 → 江之島站（約 1.5 小時）'},
+      {id:'s34',icon:'⛩️',name:'江之島神社（上午先到）',note:'參拜後可上展望台、走岩屋洞窟'},
+      {id:'s35',icon:'🚋',name:'江之電 → 鎌倉（下午）',note:'搭江之電沿海岸線，欣賞海景，約 30 分到鎌倉站'},
+      {id:'s36',icon:'🛍️',name:'小町通老街',note:'鎌倉站正前方，邊走邊吃'},
+      {id:'s37',icon:'⛩️',name:'鶴岡八幡宮',note:'小町通底端，步行即到'},
+      {id:'s38',icon:'🚆',name:'鎌倉 → 東京（直接回程）',note:'JR 横須賀線 鎌倉 → 東京，省 40 分鐘'}]},
+    {id:'d8',num:'D8',emoji:'🎡',title:'東京迪士尼海洋（建議）',date:'5月15日（五）',cat:'free',tip:'✨ 此日空白，可依喜好自行規劃。',stops:[
+      {id:'s39',icon:'🎡',name:'東京迪士尼海洋 DisneySea',note:'舞浜站，玩一整天'},
+      {id:'s40',icon:'📝',name:'或：豐洲市場 + 台場海濱',note:'自由替換為其他選項'}]},
+    {id:'d9',num:'D9',emoji:'😴',title:'演唱會前備休日',date:'5月16日（六）',cat:'free',tip:'🎵 明天是 NIJIFES 2026！今天輕鬆安排，早點休息補充體力。',stops:[
+      {id:'s41',icon:'☕',name:'代官山蔦屋書店 + 中目黑咖啡館',note:'輕鬆文青路線'},
+      {id:'s42',icon:'🌿',name:'吉祥寺 + 井之頭公園',note:'悠閒下午'}]},
+    {id:'d10',num:'D10',emoji:'🎤',title:'NIJIFES 2026 演唱會',date:'5月17日（日）',cat:'event',tip:'🌟 今天不要安排其他行程，全心享受演唱會。注意末班車時間。',stops:[
+      {id:'s43',icon:'🚆',name:'往幕張展覽館',note:'上野 → JR 京葉線 → 海濱幕張站，步行 5 分。建議開演 90 分前出發'},
+      {id:'s44',icon:'🎶',name:'NIJIFES 2026（幕張メッセ）',note:'享受！周邊攤位可能早排隊，建議開館即進場'}]},
+    {id:'d11',num:'D11',emoji:'🌈',title:'橫濱動漫巡禮',date:'5月18日（一）',cat:'yokohama',tip:'',stops:[
+      {id:'s45',icon:'🚆',name:'往橫濱',note:'上野 → JR 京濱東北線 → 橫濱站（約 40 分）'},
+      {id:'s46',icon:'🎎',name:'橫濱 VIVRE（彩虹社官方娃娃店）',note:'橫濱站步行約 5 分'},
+      {id:'s47',icon:'🏗️',name:'港未來 Landmark Tower',note:'步行或搭港未來線，展望台視野極佳'},
+      {id:'s48',icon:'🥟',name:'橫濱中華街 午餐/晚餐',note:'搭地鐵元町中華街站，吃肉包、烤肉'},
+      {id:'s49',icon:'🧱',name:'紅磚倉庫 → 山下公園',note:'步行沿海岸線散步，黃昏特別美'}]},
+    {id:'d12',num:'D12',emoji:'🏙️',title:'台場・豐洲（建議）',date:'5月19日（二）',cat:'free',tip:'✨ 可替換為：澀谷 Scramble Square 展望台、東京國立博物館（雨天備案）。',stops:[
+      {id:'s50',icon:'🐟',name:'豐洲市場（早市）',note:'海鮮丼早餐'},
+      {id:'s51',icon:'🌅',name:'台場海濱公園',note:'彩虹大橋景觀'},
+      {id:'s52',icon:'🎨',name:'teamLab Planets',note:'需提前購票'}]},
+    {id:'d13',num:'D13',emoji:'🛍️',title:'最後採買日',date:'5月20日（三）',cat:'shopping',tip:'💡 確認機票資訊、搭機時間，今晚早點休息。',stops:[
+      {id:'s53',icon:'💊',name:'上野・阿美橫町藥妝區',note:'步行距離內，藥妝、食品、伴手禮全包'},
+      {id:'s54',icon:'🏬',name:'新宿・伊勢丹 or 高島屋',note:'精品伴手禮、甜點，最後機會'},
+      {id:'s55',icon:'📦',name:'回飯店打包行李',note:'易碎品放中間，液體打包進託運'}]},
+    {id:'d14',num:'D14',emoji:'✈️',title:'回家日',date:'5月21日（四）',cat:'transit',tip:'',stops:[
+      {id:'s56',icon:'🏨',name:'飯店退房',note:'確認無遺留物品'},
+      {id:'s57',icon:'🚆',name:'前往成田機場（留至少 3 小時餘裕）',note:'入谷 → 日比谷線 → 上野 → 京成本線（特急/Skyliner）→ 成田機場'},
+      {id:'s58',icon:'🛒',name:'成田機場採買',note:'免稅店、藥妝、零食，最後補貨'},
+      {id:'s59',icon:'✈️',name:'登機返台',note:'旅程圓滿結束 🎉'}]}
+  ]
 };
 
-async function showApp() {
-  document.getElementById('loading-screen').classList.remove('hidden');
-  document.getElementById('app').style.display = 'none';
-  await loadData();
-  document.getElementById('loading-screen').classList.add('hidden');
-  document.getElementById('app').style.display = 'block';
-  subscribeToChanges();
-}
+let DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
+let saveTimer = null;
+let unsubscribe = null;
+let isFirstLoad = true;
+let activeFilterId = 'all';
+let emojiTarget = null;
+let templateTargetDay = null;
 
-// 直接進入（已移除密碼驗證）
-showApp();
-
-async function loadData() {
+// ── INIT ──
+async function init() {
   try {
     const ref = doc(db, 'trips', TRIP_DOC_ID);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       DATA = snap.data();
+      if (!DATA.meta) DATA.meta = JSON.parse(JSON.stringify(DEFAULT_DATA.meta));
     } else {
-      DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
       await setDoc(ref, DATA);
     }
-    render();
-    applyCover();
-  } catch(e) {
-    toast('載入失敗：' + e.message);
-    DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
-    render();
-    applyCover();
-  }
+  } catch(e) { console.warn('Firestore load failed, using default:', e); }
+  render();
+  applyCover();
+  subscribeToChanges();
+  document.getElementById('loading-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
 }
 
 function subscribeToChanges() {
@@ -862,10 +641,7 @@ async function saveToFirestore() {
   try {
     await setDoc(doc(db, 'trips', TRIP_DOC_ID), DATA);
     setSyncStatus('synced');
-  } catch(e) {
-    setSyncStatus('error');
-    toast('儲存失敗：' + e.message);
-  }
+  } catch(e) { setSyncStatus('error'); }
 }
 
 function scheduleSave() {
@@ -884,6 +660,21 @@ function setSyncStatus(s) {
   else { dot.style.background='#f87171'; txt.textContent='同步失敗'; }
 }
 
+// ── COVER ──
+function applyCover() {
+  const meta = DATA.meta || {};
+  if (meta.title) document.getElementById('coverTitle').value = meta.title;
+  if (meta.subtitle) document.getElementById('coverSubtitle').value = meta.subtitle;
+}
+function saveMeta() {
+  if (!DATA.meta) DATA.meta = {};
+  DATA.meta.title = document.getElementById('coverTitle').value;
+  DATA.meta.subtitle = document.getElementById('coverSubtitle').value;
+  scheduleSave();
+}
+document.getElementById('coverTitle').addEventListener('input', saveMeta);
+document.getElementById('coverSubtitle').addEventListener('input', saveMeta);
+
 // ── RENDER ──
 function render() {
   const main = document.getElementById('main');
@@ -892,7 +683,7 @@ function render() {
     const sec = document.createElement('div');
     sec.className = 'day-section';
     sec.setAttribute('data-id', day.id);
-    sec.innerHTML = renderDay(day);
+    sec.innerHTML = renderDay(day, di);
     main.appendChild(sec);
     bindDayEvents(sec, day);
   });
@@ -901,114 +692,146 @@ function render() {
   renderBudgets();
 }
 
+function checkIsToday(day) {
+  const today = new Date();
+  const start = new Date(TRIP_START);
+  const diffDays = Math.floor((today - start) / 86400000);
+  const idx = DATA.days.findIndex(d => d.id === day.id);
+  return diffDays === idx;
+}
+
+function getLiveRate() { return DATA.meta?.customRate || 0.221; }
+
+function calcDayBudgetJpy(day) {
+  return (day.stops||[]).reduce((sum,s) => {
+    if (s.budget != null) return sum + Number(s.budget);
+    if (s.budgetTwd != null) return sum + Math.round(Number(s.budgetTwd) / getLiveRate());
+    return sum;
+  }, 0);
+}
+function calcDayBudgetTwd(day) {
+  const rate = getLiveRate();
+  return (day.stops||[]).reduce((sum,s) => {
+    if (s.budgetTwd != null) return sum + Number(s.budgetTwd);
+    if (s.budget != null) return sum + Math.round(Number(s.budget) * rate);
+    return sum;
+  }, 0);
+}
+function calcTripBudgetJpy() { return DATA.days.reduce((s,d)=>s+calcDayBudgetJpy(d),0); }
+function calcTripBudgetTwd() { return DATA.days.reduce((s,d)=>s+calcDayBudgetTwd(d),0); }
+
+function renderBudgets() {
+  const jpy = calcTripBudgetJpy(), twd = calcTripBudgetTwd();
+  const bar = document.getElementById('tripBudgetBar');
+  if (!bar) return;
+  if (jpy === 0 && twd === 0) { bar.style.display='none'; return; }
+  bar.style.display = 'flex';
+  const rate = getLiveRate();
+  bar.innerHTML = `<span class="trip-budget-label">旅程總花費</span>
+    <span class="trip-budget-amount">¥${jpy.toLocaleString()}</span>
+    <span style="font-size:13px;color:#1a73e8;font-weight:700">NT$${twd.toLocaleString()}</span>
+    <span style="margin-left:auto;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px">
+      匯率 1 JPY =
+      <input id="inlineRateInput" type="number" value="${rate.toFixed(3)}" step="0.001" min="0.001"
+        style="width:54px;border:1px dashed #ccc;border-radius:5px;padding:1px 5px;font-size:11px;
+               text-align:center;background:transparent;outline:none;color:var(--muted);font-family:'Noto Sans TC',sans-serif">
+      TWD
+      <span id="inlineRateSaved" style="color:#4ade80;font-size:10px;opacity:0;transition:opacity .4s">✓</span>
+    </span>`;
+  const input = document.getElementById('inlineRateInput');
+  input.addEventListener('change', () => {
+    const val = parseFloat(input.value);
+    if (!val || val <= 0) { input.value = rate.toFixed(3); return; }
+    if (!DATA.meta) DATA.meta = {};
+    DATA.meta.customRate = val;
+    // sync to currency panel if open
+    const ri = document.getElementById('rateInput');
+    if (ri) ri.value = val;
+    // recalculate all budgetTwd from budgetJpy using new rate
+    DATA.days.forEach(day => {
+      (day.stops||[]).forEach(s => {
+        if (s.budget != null) {
+          s.budgetTwd = Math.round(Number(s.budget) * val);
+        } else if (s.budgetTwd != null) {
+          s.budget = Math.round(Number(s.budgetTwd) / val);
+        }
+      });
+    });
+    scheduleSave();
+    render();
+    const saved = document.getElementById('inlineRateSaved');
+    if (saved) { saved.style.opacity='1'; setTimeout(()=>saved.style.opacity='0', 1500); }
+  });
+  input.addEventListener('focus', () => input.select());
+}
+
 function renderDay(day) {
-  const stops = day.stops.map((s,si) => renderStop(s, day.id, si, day.stops)).join('');
-  const fields = (day.fields||[]).map(f => renderField(f, day.id)).join('');
+  const stops = day.stops.map((s,si)=>renderStop(s,day.id,si,day.stops)).join('');
+  const fields = (day.fields||[]).map(f=>renderField(f,day.id)).join('');
   const isToday = checkIsToday(day);
-  const dayTotal = calcDayBudget(day);
+  const jpy = calcDayBudgetJpy(day), twd = calcDayBudgetTwd(day);
+  const budgetTotal = (jpy>0||twd>0) ? `<div class="day-budget-total">當日小計 <strong>¥${jpy.toLocaleString()}</strong><span style="color:#1a73e8;font-weight:700;font-size:12px">NT$${twd.toLocaleString()}</span></div>` : '';
   const todayBadge = isToday ? '<span class="today-badge">📍 今天</span>' : '';
-  const dayTwd = calcDayBudgetTwd(day);
-  const budgetTotal = (dayTotal > 0 || dayTwd > 0)
-    ? `<div class="day-budget-total">當日小計
-        <strong>¥${dayTotal.toLocaleString()}</strong>
-        <span style="color:#1a73e8;font-weight:700;font-size:12px">NT$${dayTwd.toLocaleString()}</span>
-       </div>`
-    : '';
   return `<div class="day-card${isToday?' is-today':''}" data-cat="${day.cat}" data-id="${day.id}">
-    <div class="day-header" onclick="toggleCollapse('${day.id}',event)">
-      <span class="day-num">${esc(day.num)}</span>
-      ${todayBadge}
+    <div class="day-header" data-dayid="${day.id}">
+      <span class="day-num">${esc(day.num)}</span>${todayBadge}
       <div class="day-title-wrap">
-        <span class="day-emoji" onclick="openDayEmoji('${day.id}',event)" title="換圖示" style="position:relative">${day.emoji}</span>
-        <input class="day-title-text" value="${escA(day.title)}" onclick="event.stopPropagation()"
-          onchange="updateDay('${day.id}','title',this.value)" placeholder="天數標題">
+        <span class="day-emoji" data-dayemoji="${day.id}" style="position:relative">${day.emoji}</span>
+        <input class="day-title-text" value="${escA(day.title)}" data-field="title" data-dayid="${day.id}" placeholder="天數標題">
       </div>
-      <select class="cat-select" onclick="event.stopPropagation()"
-        onchange="updateDay('${day.id}','cat',this.value);this.closest('.day-card').setAttribute('data-cat',this.value)">
-        ${['transit','tokyo','daytrip','event','yokohama','shopping','free'].map(c=>
-          `<option value="${c}"${day.cat===c?' selected':''}>${catL(c)}</option>`).join('')}
+      <select class="cat-select" data-catselect="${day.id}">
+        ${['transit','tokyo','daytrip','event','yokohama','shopping','free'].map(c=>`<option value="${c}"${day.cat===c?' selected':''}>${catL(c)}</option>`).join('')}
       </select>
-      <input class="day-date-input" value="${escA(day.date)}" onclick="event.stopPropagation()"
-        onchange="updateDay('${day.id}','date',this.value)" placeholder="日期">
-      <button class="icon-btn del" onclick="event.stopPropagation();deleteDay('${day.id}')" title="刪除此天">🗑</button>
-      <button class="collapse-btn" onclick="event.stopPropagation();toggleCollapse('${day.id}',event)">▾</button>
+      <input class="day-date-input" value="${escA(day.date)}" data-field="date" data-dayid="${day.id}" placeholder="日期">
+      <button class="icon-btn del" data-deleteday="${day.id}">🗑</button>
+      <button class="collapse-btn" data-collapse="${day.id}">▾</button>
     </div>
     <div class="day-body">
       <ul class="stop-list" id="stops-${day.id}">${stops}</ul>
       ${budgetTotal}
-      <div class="tip-row">
-        <div class="tip-box-editable" contenteditable="true" data-placeholder="💡 新增備忘或小貼士…"
-          onblur="updateDay('${day.id}','tip',this.innerText.trim())">${esc(day.tip)}</div>
-      </div>
+      <div class="tip-row"><div class="tip-box-editable" contenteditable="true" data-placeholder="💡 新增備忘或小貼士…" data-tip="${day.id}">${esc(day.tip)}</div></div>
       <div class="custom-fields" id="fields-${day.id}">${fields}</div>
       <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-        <button class="add-stop-btn" style="flex:1;min-width:120px" onclick="openTemplateModal('${day.id}')">＋ 新增行程</button>
-        <button class="add-field-btn" onclick="addField('${day.id}')">＋ 新增欄位</button>
+        <button class="add-stop-btn" style="flex:1;min-width:120px" data-addstop="${day.id}">＋ 新增行程</button>
+        <button class="add-field-btn" data-addfield="${day.id}">＋ 新增欄位</button>
       </div>
     </div>
   </div>`;
 }
 
 function renderStop(s, dayId, idx, allStops) {
-  const stopFields = (s.fields||[]).map(f => renderStopField(f, s.id, dayId)).join('');
-  const budgetJpy = s.budget != null ? s.budget : '';
-  const budgetTwd = s.budgetTwd != null ? s.budgetTwd : '';
+  const stopFields = (s.fields||[]).map(f=>renderStopField(f,s.id,dayId)).join('');
+  const jpy = s.budget!=null?s.budget:'', twd = s.budgetTwd!=null?s.budgetTwd:'';
   const budgetRow = `<div class="budget-row">
-    <div class="budget-item">
-      <span class="budget-label">¥</span>
-      <input class="budget-amount" type="number" min="0" value="${budgetJpy}"
-        placeholder="日圓"
-        id="jpy-${s.id}"
-        onchange="onBudgetChange('${dayId}','${s.id}','jpy',this.value)"
-        onclick="event.stopPropagation()" title="輸入日圓金額">
-      <span class="budget-currency">JPY</span>
-    </div>
+    <div class="budget-item"><span class="budget-label">¥</span>
+      <input class="budget-amount" type="number" min="0" value="${jpy}" placeholder="日圓" data-budgetjpy="${s.id}" data-dayid="${dayId}">
+      <span class="budget-currency">JPY</span></div>
     <span class="budget-divider">⇄</span>
-    <div class="budget-item twd-item">
-      <span class="budget-label" style="color:#1a73e8">NT$</span>
-      <input class="budget-amount" type="number" min="0" value="${budgetTwd}"
-        placeholder="台幣"
-        id="twd-${s.id}"
-        onchange="onBudgetChange('${dayId}','${s.id}','twd',this.value)"
-        onclick="event.stopPropagation()" title="輸入台幣金額">
-      <span class="budget-currency" style="color:#1a73e8">TWD</span>
-    </div>
+    <div class="budget-item twd-item"><span class="budget-label" style="color:#1a73e8">NT$</span>
+      <input class="budget-amount" type="number" min="0" value="${twd}" placeholder="台幣" data-budgettwd="${s.id}" data-dayid="${dayId}" style="color:#1a73e8">
+      <span class="budget-currency" style="color:#1a73e8">TWD</span></div>
   </div>`;
-  // transit row: show between stops (after this stop, before next)
+  const isLast = idx === allStops.length-1;
   const hasTransit = s.transit != null;
-  const isLast = idx === allStops.length - 1;
   const transitRow = !isLast ? `<div class="transit-row">
     ${hasTransit
-      ? `<span class="transit-badge">🚶 <input class="transit-time-input" value="${escA(s.transit||'')}"
-          placeholder="幾分鐘"
-          onchange="updateStop('${dayId}','${s.id}','transit',this.value)"
-          onclick="event.stopPropagation()"> 分鐘</span>
-         <button class="icon-btn del" style="font-size:10px;opacity:.5" onclick="updateStop('${dayId}','${s.id}','transit',null);render()">✕</button>`
-      : `<button class="add-transit-btn" onclick="addTransit('${dayId}','${s.id}')">＋ 交通時間</button>`}
+      ? `<span class="transit-badge">🚶 <input class="transit-time-input" value="${escA(s.transit||'')}" data-transit="${s.id}" data-dayid="${dayId}" placeholder="幾分鐘"> 分鐘</span>
+         <button class="icon-btn del" style="font-size:10px;opacity:.5" data-deltransit="${s.id}" data-dayid="${dayId}">✕</button>`
+      : `<button class="add-transit-btn" data-addtransit="${s.id}" data-dayid="${dayId}">＋ 交通時間</button>`}
   </div>` : '';
   return `<li class="stop-item" draggable="true" data-id="${s.id}" data-day="${dayId}">
     <span class="drag-handle">⠿</span>
-    <div class="stop-icon-wrap">
-      <div class="stop-icon-select" onclick="openStopEmoji('${s.id}','${dayId}',event)">${s.icon}</div>
-    </div>
+    <div class="stop-icon-wrap"><div class="stop-icon-select" data-stopemoji="${s.id}" data-dayid="${dayId}">${s.icon}</div></div>
     <div class="stop-content">
-      <div style="display:flex;align-items:center;gap:4px">
-        <input class="stop-name-input" style="flex:1" value="${escA(s.name)}"
-          onchange="updateStop('${dayId}','${s.id}','name',this.value)" placeholder="行程名稱">
-        ${s.name ? `<a class="map-btn" href="https://www.google.com/maps/search/${encodeURIComponent(s.name+' 日本')}" target="_blank" title="在 Google Maps 開啟" onclick="event.stopPropagation()">📍</a>` : ''}
-      </div>
-      <textarea class="stop-note-input"
-        onchange="updateStop('${dayId}','${s.id}','note',this.value)"
-        oninput="autoResize(this)" placeholder="備注：交通方式、提醒…">${esc(s.note)}</textarea>
+      <input class="stop-name-input" value="${escA(s.name)}" data-stopname="${s.id}" data-dayid="${dayId}" placeholder="行程名稱">
+      <textarea class="stop-note-input" data-stopnote="${s.id}" data-dayid="${dayId}" placeholder="備注：交通方式、提醒…">${esc(s.note)}</textarea>
+      ${s.name?`<a class="map-btn" href="https://www.google.com/maps/search/${encodeURIComponent(s.name+' 日本')}" target="_blank">📍 地圖</a>`:''}
     </div>
-    <div class="stop-actions">
-      <button class="icon-btn del" onclick="deleteStop('${dayId}','${s.id}')">✕</button>
-    </div>
+    <div class="stop-actions"><button class="icon-btn del" data-deletestop="${s.id}" data-dayid="${dayId}">✕</button></div>
     <div class="stop-extra">
-      ${budgetRow}
-      ${stopFields}
-      <div class="stop-template-wrap" id="tplwrap-${s.id}" style="position:relative">
-        <button class="add-stop-field-btn" onclick="toggleStopTpl('${s.id}','${dayId}',event)">＋ 新增欄位</button>
+      ${budgetRow}${stopFields}
+      <div class="stop-template-wrap" style="position:relative">
+        <button class="add-stop-field-btn" data-opentpl="${s.id}" data-dayid="${dayId}">＋ 新增欄位</button>
         <div class="stop-template-dropdown hidden" id="tpldrop-${s.id}"></div>
       </div>
     </div>
@@ -1018,754 +841,589 @@ function renderStop(s, dayId, idx, allStops) {
 function renderStopField(f, stopId, dayId) {
   return `<div class="stop-field" data-sfid="${f.id}">
     <div class="stop-field-header">
-      <input class="stop-field-label" value="${escA(f.label)}"
-        onchange="updateStopField('${dayId}','${stopId}','${f.id}','label',this.value)"
-        placeholder="欄位名稱（交通路線、購物清單、預算…）">
-      <button class="stop-field-del" onclick="deleteStopField('${dayId}','${stopId}','${f.id}')">✕</button>
+      <input class="stop-field-label" value="${escA(f.label)}" data-sfieldlabel="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" placeholder="欄位名稱">
+      <button class="stop-field-del" data-deletesf="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">✕</button>
     </div>
-    <textarea class="stop-field-body"
-      oninput="autoResize(this)"
-      onchange="updateStopField('${dayId}','${stopId}','${f.id}','body',this.value)"
-      placeholder="輸入內容…">${esc(f.body)}</textarea>
+    <textarea class="stop-field-body" data-sfieldbody="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" placeholder="輸入內容…">${esc(f.body)}</textarea>
   </div>`;
 }
 
 function renderField(f, dayId) {
-  return `<div class="custom-field" data-fid="${f.id}" data-day="${dayId}">
+  return `<div class="custom-field" data-fid="${f.id}">
     <div class="custom-field-header">
-      <input class="custom-field-label" value="${escA(f.label)}"
-        onchange="updateField('${dayId}','${f.id}','label',this.value)"
-        placeholder="欄位名稱（如：交通路線、購物清單）">
-      <button class="field-del-btn" onclick="deleteField('${dayId}','${f.id}')" title="刪除欄位">✕</button>
+      <input class="custom-field-label" value="${escA(f.label)}" data-fieldlabel="${f.id}" data-dayid="${dayId}" placeholder="欄位名稱">
+      <button class="field-del-btn" data-deletefield="${f.id}" data-dayid="${dayId}">✕</button>
     </div>
-    <textarea class="custom-field-body"
-      oninput="autoResize(this)"
-      onchange="updateField('${dayId}','${f.id}','body',this.value)"
-      placeholder="輸入內容…">${esc(f.body)}</textarea>
+    <textarea class="custom-field-body" data-fieldbody="${f.id}" data-dayid="${dayId}" placeholder="輸入內容…">${esc(f.body)}</textarea>
   </div>`;
 }
+
 function catL(c){return{transit:'抵返',tokyo:'東京',daytrip:'近郊',event:'演唱會',yokohama:'橫濱',shopping:'採買',free:'待規劃'}[c]||c}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function escA(s){return(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
-function autoResize(ta){
-  ta.style.height='auto';
-  ta.style.height=(ta.scrollHeight)+'px';
-}
-function autoResizeAll(){
-  document.querySelectorAll('.stop-note-input').forEach(autoResize);
-}
+function autoResize(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px'}
 
+// ── EVENT DELEGATION ──
 function bindDayEvents(sec, day) {
-  requestAnimationFrame(()=>{
-    sec.querySelectorAll('.stop-note-input, .custom-field-body, .stop-field-body').forEach(autoResize);
+  requestAnimationFrame(()=>{ sec.querySelectorAll('textarea').forEach(autoResize); });
+
+  sec.addEventListener('click', e => {
+    const t = e.target;
+
+    // collapse
+    const collapseId = t.dataset.collapse || t.closest('[data-collapse]')?.dataset.collapse;
+    const headerEl = t.closest('.day-header');
+    if (headerEl && !t.closest('input,select,button,textarea,a,[contenteditable]')) {
+      const card = headerEl.closest('.day-card');
+      if (card) card.classList.toggle('collapsed');
+      return;
+    }
+    if (t.dataset.collapse) { const card=sec.querySelector('.day-card'); if(card)card.classList.toggle('collapsed'); return; }
+
+    // delete day
+    if (t.dataset.deleteday) { if(confirm('確定要刪除這天嗎？')){DATA.days=DATA.days.filter(d=>d.id!==t.dataset.deleteday);render();scheduleSave();toast('已刪除');} return; }
+
+    // add stop
+    if (t.dataset.addstop) { addStop(t.dataset.addstop); return; }
+
+    // add day field
+    if (t.dataset.addfield) { addField(t.dataset.addfield); return; }
+
+    // delete stop
+    if (t.dataset.deletestop) { const d=DATA.days.find(x=>x.id===t.dataset.dayid); if(d){d.stops=d.stops.filter(s=>s.id!==t.dataset.deletestop);render();scheduleSave();} return; }
+
+    // delete day field
+    if (t.dataset.deletefield) { const d=DATA.days.find(x=>x.id===t.dataset.dayid); if(d){d.fields=d.fields.filter(f=>f.id!==t.dataset.deletefield);render();scheduleSave();} return; }
+
+    // delete stop field
+    if (t.dataset.deletesf) { const d=DATA.days.find(x=>x.id===t.dataset.dayid); if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s)s.fields=s.fields.filter(f=>f.id!==t.dataset.deletesf);render();scheduleSave();} return; }
+
+    // day emoji
+    if (t.dataset.dayemoji) { openEmojiPicker({type:'day',id:t.dataset.dayemoji},t); return; }
+
+    // stop emoji
+    if (t.dataset.stopemoji) { openEmojiPicker({type:'stop',stopId:t.dataset.stopemoji,dayId:t.dataset.dayid},t); return; }
+
+    // open template dropdown
+    if (t.dataset.opentpl) { toggleStopTpl(t.dataset.opentpl, t.dataset.dayid, e); return; }
+
+    // transit delete
+    if (t.dataset.deltransit) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d){const s=d.stops.find(x=>x.id===t.dataset.deltransit);if(s)s.transit=null;render();scheduleSave();}return; }
+
+    // add transit
+    if (t.dataset.addtransit) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d){const s=d.stops.find(x=>x.id===t.dataset.addtransit);if(s){s.transit='15';render();scheduleSave();setTimeout(()=>{const el=sec.querySelector(`[data-transit="${t.dataset.addtransit}"]`);if(el){el.focus();el.select();}},50);}}return; }
   });
+
+  sec.addEventListener('change', e => {
+    const t = e.target;
+    // day title / date
+    if (t.dataset.field && t.dataset.dayid) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d){d[t.dataset.field]=t.value;scheduleSave();}return; }
+    // cat select
+    if (t.dataset.catselect) { const d=DATA.days.find(x=>x.id===t.dataset.catselect);if(d){d.cat=t.value;sec.querySelector('.day-card').setAttribute('data-cat',t.value);scheduleSave();}return; }
+    // stop name
+    if (t.dataset.stopname) { updateStop(t.dataset.dayid,t.dataset.stopname,'name',t.value); return; }
+    // stop note
+    if (t.dataset.stopnote) { updateStop(t.dataset.dayid,t.dataset.stopnote,'note',t.value); return; }
+    // budget jpy
+    if (t.dataset.budgetjpy) { onBudgetChange(t.dataset.dayid,t.dataset.budgetjpy,'jpy',t.value); return; }
+    // budget twd
+    if (t.dataset.budgettwd) { onBudgetChange(t.dataset.dayid,t.dataset.budgettwd,'twd',t.value); return; }
+    // transit time
+    if (t.dataset.transit) { updateStop(t.dataset.dayid,t.dataset.transit,'transit',t.value); return; }
+    // stop field label
+    if (t.dataset.sfieldlabel) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s&&s.fields){const f=s.fields.find(x=>x.id===t.dataset.sfieldlabel);if(f){f.label=t.value;scheduleSave();}}}return; }
+    // stop field body
+    if (t.dataset.sfieldbody) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s&&s.fields){const f=s.fields.find(x=>x.id===t.dataset.sfieldbody);if(f){f.body=t.value;scheduleSave();}}}return; }
+    // day field label
+    if (t.dataset.fieldlabel) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d&&d.fields){const f=d.fields.find(x=>x.id===t.dataset.fieldlabel);if(f){f.label=t.value;scheduleSave();}}return; }
+    // day field body
+    if (t.dataset.fieldbody) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d&&d.fields){const f=d.fields.find(x=>x.id===t.dataset.fieldbody);if(f){f.body=t.value;scheduleSave();}}return; }
+  });
+
+  sec.addEventListener('input', e => {
+    const t = e.target;
+    if (t.tagName === 'TEXTAREA') autoResize(t);
+    if (t.dataset.tip !== undefined) { const d=DATA.days.find(x=>x.id===t.dataset.tip);if(d){d.tip=t.innerText.trim();scheduleSave();} }
+  });
+
+  // drag
   let dragSrc=null, dragSrcDay=null;
   sec.querySelectorAll('.stop-item').forEach(item=>{
-    item.addEventListener('dragstart',e=>{
-      dragSrc=item.getAttribute('data-id');
-      dragSrcDay=item.getAttribute('data-day');
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed='move';
-    });
+    item.addEventListener('dragstart',e=>{dragSrc=item.getAttribute('data-id');dragSrcDay=item.getAttribute('data-day');item.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
     item.addEventListener('dragend',()=>item.classList.remove('dragging'));
-    item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('drag-over')});
+    item.addEventListener('dragover',e=>{e.preventDefault();item.classList.add('drag-over');});
     item.addEventListener('dragleave',()=>item.classList.remove('drag-over'));
-    item.addEventListener('drop',e=>{
-      e.preventDefault();item.classList.remove('drag-over');
-      if(dragSrc===item.getAttribute('data-id'))return;
-      moveStop(dragSrcDay,dragSrc,item.getAttribute('data-day'),item.getAttribute('data-id'));
-    });
+    item.addEventListener('drop',e=>{e.preventDefault();item.classList.remove('drag-over');if(dragSrc===item.getAttribute('data-id'))return;moveStop(dragSrcDay,dragSrc,item.getAttribute('data-day'),item.getAttribute('data-id'));});
   });
 }
 
-// ── DATA OPS ──
-window.updateDay=(dayId,field,val)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(d){d[field]=val;scheduleSave();}
-};
-window.updateStop=(dayId,stopId,field,val)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(!d)return;
-  const s=d.stops.find(x=>x.id===stopId);
-  if(s){s[field]=val;scheduleSave();}
-};
-window.toggleCollapse=(dayId,e)=>{
-  if(['INPUT','SELECT','BUTTON','TEXTAREA'].includes(e.target.tagName))return;
-  const card=document.querySelector(`.day-card[data-id="${dayId}"]`);
-  if(card)card.classList.toggle('collapsed');
-};
-window.deleteDay=(dayId)=>{
-  if(!confirm('確定要刪除這天嗎？'))return;
-  DATA.days=DATA.days.filter(d=>d.id!==dayId);
-  render();scheduleSave();toast('已刪除');
-};
-window.addStop=(dayId)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(!d)return;
-  const id='s'+Date.now();
-  d.stops.push({id,icon:'📍',name:'',note:''});
-  render();
-  setTimeout(()=>{const el=document.querySelector(`[data-id="${id}"] .stop-name-input`);if(el)el.focus()},50);
-};
-window.deleteStop=(dayId,stopId)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(!d)return;
-  d.stops=d.stops.filter(s=>s.id!==stopId);
-  render();scheduleSave();
-};
-window.addField=(dayId)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(!d)return;
-  if(!d.fields)d.fields=[];
-  const id='f'+Date.now();
-  d.fields.push({id,label:'',body:''});
-  render();scheduleSave();
-  setTimeout(()=>{
-    const el=document.querySelector(`.custom-field[data-fid="${id}"] .custom-field-label`);
-    if(el)el.focus();
-  },50);
-};
-window.updateField=(dayId,fieldId,key,val)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(!d||!d.fields)return;
-  const f=d.fields.find(x=>x.id===fieldId);
-  if(f){f[key]=val;scheduleSave();}
-};
-window.deleteField=(dayId,fieldId)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(!d||!d.fields)return;
-  d.fields=d.fields.filter(f=>f.id!==fieldId);
-  render();scheduleSave();
-};
-// ── STOP-LEVEL FIELDS ──
-window.addStopField=(dayId,stopId)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(!d)return;
-  const s=d.stops.find(x=>x.id===stopId);
-  if(!s)return;
-  if(!s.fields)s.fields=[];
-  const id='sf'+Date.now();
-  s.fields.push({id,label:'',body:''});
-  render();scheduleSave();
-  setTimeout(()=>{
-    const el=document.querySelector(`.stop-field[data-sfid="${id}"] .stop-field-label`);
-    if(el)el.focus();
-  },50);
-};
-window.updateStopField=(dayId,stopId,fieldId,key,val)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(!d)return;
-  const s=d.stops.find(x=>x.id===stopId);
-  if(!s||!s.fields)return;
-  const f=s.fields.find(x=>x.id===fieldId);
-  if(f){f[key]=val;scheduleSave();}
-};
-window.deleteStopField=(dayId,stopId,fieldId)=>{
-  const d=DATA.days.find(x=>x.id===dayId);
-  if(!d)return;
-  const s=d.stops.find(x=>x.id===stopId);
-  if(!s||!s.fields)return;
-  s.fields=s.fields.filter(f=>f.id!==fieldId);
-  render();scheduleSave();
-};
+function updateStop(dayId, stopId, field, val) {
+  const d=DATA.days.find(x=>x.id===dayId); if(!d)return;
+  const s=d.stops.find(x=>x.id===stopId); if(s){s[field]=val;scheduleSave();}
+}
+
+function onBudgetChange(dayId, stopId, currency, rawVal) {
+  const d=DATA.days.find(x=>x.id===dayId); if(!d)return;
+  const s=d.stops.find(x=>x.id===stopId); if(!s)return;
+  const val = rawVal===''?null:Number(rawVal);
+  const rate = getLiveRate();
+  if (currency==='jpy') {
+    s.budget=val;
+    const twdEl=document.querySelector(`[data-budgettwd="${stopId}"]`);
+    if(twdEl){const v=val!=null?Math.round(val*rate):null;twdEl.value=v!=null?v:'';s.budgetTwd=v;}
+  } else {
+    s.budgetTwd=val;
+    const jpyEl=document.querySelector(`[data-budgetjpy="${stopId}"]`);
+    if(jpyEl){const v=val!=null?Math.round(val/rate):null;jpyEl.value=v!=null?v:'';s.budget=v;}
+  }
+  scheduleSave(); renderBudgets();
+}
+
 function moveStop(srcDayId,srcStopId,tgtDayId,tgtStopId){
-  const sd=DATA.days.find(x=>x.id===srcDayId);
-  const td=DATA.days.find(x=>x.id===tgtDayId);
+  const sd=DATA.days.find(x=>x.id===srcDayId),td=DATA.days.find(x=>x.id===tgtDayId);
   if(!sd||!td)return;
-  const idx=sd.stops.findIndex(s=>s.id===srcStopId);
-  if(idx===-1)return;
+  const idx=sd.stops.findIndex(s=>s.id===srcStopId); if(idx===-1)return;
   const[stop]=sd.stops.splice(idx,1);
   const ti=td.stops.findIndex(s=>s.id===tgtStopId);
   td.stops.splice(ti,0,stop);
-  render();scheduleSave();
+  render(); scheduleSave();
+}
+
+function addStop(dayId) {
+  const d=DATA.days.find(x=>x.id===dayId); if(!d)return;
+  openTemplateModal(dayId);
+}
+
+function addField(dayId) {
+  const d=DATA.days.find(x=>x.id===dayId); if(!d)return;
+  if(!d.fields)d.fields=[];
+  const id='f'+Date.now();
+  d.fields.push({id,label:'',body:''});
+  render(); scheduleSave();
+  setTimeout(()=>{const el=document.querySelector(`[data-fieldlabel="${id}"]`);if(el)el.focus();},50);
+}
+
+// ── FILTER BAR ──
+function renderFilterBar() {
+  const bar=document.getElementById('day-filters'); if(!bar)return;
+  bar.innerHTML='';
+  const allBtn=document.createElement('button');
+  allBtn.className='filter-btn filter-all'+(activeFilterId==='all'?' active':'');
+  allBtn.textContent='全部';
+  allBtn.addEventListener('click',()=>{activeFilterId='all';renderFilterBar();applyFilter();});
+  bar.appendChild(allBtn);
+  DATA.days.forEach(day=>{
+    const btn=document.createElement('button');
+    btn.className='filter-btn'+(activeFilterId===day.id?' active':'');
+    btn.setAttribute('data-dayid',day.id);
+    const label=document.createElement('span');
+    label.className='filter-btn-label';
+    label.contentEditable='true';
+    label.spellcheck=false;
+    label.textContent=day.num||'D?';
+    label.addEventListener('click',e=>e.stopPropagation());
+    label.addEventListener('blur',()=>{const v=label.textContent.trim();if(v){const d=DATA.days.find(x=>x.id===day.id);if(d){d.num=v;scheduleSave();}}});
+    label.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();label.blur();}});
+    btn.addEventListener('click',()=>{activeFilterId=day.id;renderFilterBar();applyFilter();});
+    btn.appendChild(label); bar.appendChild(btn);
+  });
+}
+
+function applyFilter() {
+  document.querySelectorAll('.day-section').forEach(sec=>{
+    const card=sec.querySelector('.day-card'); if(!card)return;
+    sec.style.display=(activeFilterId==='all'||card.getAttribute('data-id')===activeFilterId)?'':'none';
+  });
 }
 
 // ── ADD DAY ──
-window.addDay=()=>{
+document.getElementById('addDayBtn').addEventListener('click',()=>openAddDayModal());
+document.getElementById('addDayBtn2').addEventListener('click',()=>openAddDayModal());
+document.getElementById('collapseAllBtn').addEventListener('click',()=>document.querySelectorAll('.day-card').forEach(c=>c.classList.add('collapsed')));
+
+function openAddDayModal(){
   document.getElementById('mDayNum').value='D'+(DATA.days.length+1);
   document.getElementById('mTitle').value='';
   document.getElementById('mDate').value='';
   document.getElementById('mCat').value='free';
   document.getElementById('mEmoji').value='🗺️';
   document.getElementById('modalOverlay').classList.remove('hidden');
-};
-window.confirmAddDay=()=>{
+}
+document.getElementById('cancelAddDay').addEventListener('click',()=>document.getElementById('modalOverlay').classList.add('hidden'));
+document.getElementById('confirmAddDay').addEventListener('click',()=>{
   const num=document.getElementById('mDayNum').value.trim()||'D?';
   const title=document.getElementById('mTitle').value.trim()||'新的一天';
   const date=document.getElementById('mDate').value.trim();
   const cat=document.getElementById('mCat').value;
   const emoji=document.getElementById('mEmoji').value.trim()||'🗺️';
-  DATA.days.push({id:'d'+Date.now(),num,emoji,title,date,cat,tip:'',
-    stops:[{id:'s'+Date.now(),icon:'📍',name:'',note:''}]});
-  closeModal();render();scheduleSave();toast('已新增新的一天');
-};
-window.closeModal=()=>document.getElementById('modalOverlay').classList.add('hidden');
-document.getElementById('modalOverlay').addEventListener('click',e=>{
-  if(e.target===document.getElementById('modalOverlay'))closeModal();
+  DATA.days.push({id:'d'+Date.now(),num,emoji,title,date,cat,tip:'',stops:[{id:'s'+Date.now(),icon:'📍',name:'',note:''}]});
+  document.getElementById('modalOverlay').classList.add('hidden');
+  render(); scheduleSave(); toast('已新增新的一天');
 });
-
-// ── EMOJI PICKER ──
-let emojiTarget=null;
-window.openDayEmoji=(dayId,e)=>{
-  e.stopPropagation();closeAllPickers();
-  emojiTarget={type:'day',id:dayId};
-  showPicker(e.currentTarget);
-};
-window.openStopEmoji=(stopId,dayId,e)=>{
-  e.stopPropagation();closeAllPickers();
-  emojiTarget={type:'stop',stopId,dayId};
-  showPicker(e.currentTarget);
-};
-function showPicker(anchor){
-  const p=document.createElement('div');p.className='emoji-picker';
-  EMOJIS.forEach(em=>{
-    const sp=document.createElement('span');sp.textContent=em;
-    sp.onclick=ev=>{ev.stopPropagation();selectEmoji(em)};p.appendChild(sp);
-  });
-  anchor.style.position='relative';anchor.appendChild(p);
-}
-function selectEmoji(em){
-  if(!emojiTarget)return;
-  if(emojiTarget.type==='day'){
-    const d=DATA.days.find(x=>x.id===emojiTarget.id);if(d)d.emoji=em;
-  }else{
-    const d=DATA.days.find(x=>x.id===emojiTarget.dayId);
-    if(d){const s=d.stops.find(x=>x.id===emojiTarget.stopId);if(s)s.icon=em;}
-  }
-  closeAllPickers();render();scheduleSave();
-}
-function closeAllPickers(){document.querySelectorAll('.emoji-picker').forEach(p=>p.remove())}
-document.addEventListener('click',closeAllPickers);
-
-// ── COVER & META ──
-
-
-
-function applyCover() {
-  const meta = DATA.meta || {};
-  if (meta.title !== undefined)
-    document.getElementById('coverTitle').value = meta.title;
-  if (meta.subtitle !== undefined)
-    document.getElementById('coverSubtitle').value = meta.subtitle;
-}
-
-
-// ── TODAY HIGHLIGHT ──
-// Set your trip start date here (YYYY-MM-DD)
-const TRIP_START = '2026-05-08';
-
-function checkIsToday(day) {
-  const today = new Date();
-  const start = new Date(TRIP_START);
-  const diffDays = Math.floor((today - start) / 86400000);
-  // match by day index (D1=0, D2=1 ...)
-  const idx = DATA.days.findIndex(d => d.id === day.id);
-  return diffDays === idx;
-}
-
-// ── BUDGET ──
-// ── BUDGET HELPERS ──
-function getLiveRate() {
-  // use saved custom rate if available, otherwise fallback
-  return DATA.meta?.customRate || 0.221;
-}
-
-// Called when user types in either JPY or TWD budget field
-window.onBudgetChange = (dayId, stopId, currency, rawVal) => {
-  const d = DATA.days.find(x => x.id === dayId);
-  if (!d) return;
-  const s = d.stops.find(x => x.id === stopId);
-  if (!s) return;
-  const val = rawVal === '' ? null : Number(rawVal);
-  const rate = getLiveRate();
-  if (currency === 'jpy') {
-    s.budget = val;
-    // auto-fill TWD
-    const twdEl = document.getElementById('twd-' + stopId);
-    if (twdEl) {
-      if (val != null) {
-        const twd = Math.round(val * rate);
-        twdEl.value = twd;
-        s.budgetTwd = twd;
-      } else {
-        twdEl.value = '';
-        s.budgetTwd = null;
-      }
-    }
-  } else {
-    s.budgetTwd = val;
-    // auto-fill JPY
-    const jpyEl = document.getElementById('jpy-' + stopId);
-    if (jpyEl) {
-      if (val != null) {
-        const jpy = Math.round(val / rate);
-        jpyEl.value = jpy;
-        s.budget = jpy;
-      } else {
-        jpyEl.value = '';
-        s.budget = null;
-      }
-    }
-  }
-  scheduleSave();
-  renderBudgets();
-};
-
-function calcDayBudget(day) {
-  // prefer JPY; if only TWD available, convert
-  return (day.stops || []).reduce((sum, s) => {
-    if (s.budget != null) return sum + Number(s.budget);
-    if (s.budgetTwd != null) return sum + Math.round(Number(s.budgetTwd) / getLiveRate());
-    return sum;
-  }, 0);
-}
-
-function calcDayBudgetTwd(day) {
-  const rate = getLiveRate();
-  return (day.stops || []).reduce((sum, s) => {
-    if (s.budgetTwd != null) return sum + Number(s.budgetTwd);
-    if (s.budget != null) return sum + Math.round(Number(s.budget) * rate);
-    return sum;
-  }, 0);
-}
-
-function calcTripBudget() {
-  return DATA.days.reduce((sum, day) => sum + calcDayBudget(day), 0);
-}
-
-function calcTripBudgetTwd() {
-  return DATA.days.reduce((sum, day) => sum + calcDayBudgetTwd(day), 0);
-}
-
-function renderBudgets() {
-  const totalJpy = calcTripBudget();
-  const totalTwd = calcTripBudgetTwd();
-  const bar = document.getElementById('tripBudgetBar');
-  if (!bar) return;
-  if (totalJpy === 0 && totalTwd === 0) {
-    bar.style.display = 'none';
-    return;
-  }
-  bar.style.display = 'flex';
-  bar.innerHTML = `
-    <span class="trip-budget-label">旅程總花費</span>
-    <span class="trip-budget-amount">¥${totalJpy.toLocaleString()}</span>
-    <span class="trip-budget-jpy" style="font-size:13px;color:#1a73e8;font-weight:700">NT$${totalTwd.toLocaleString()}</span>
-    <span style="margin-left:auto;font-size:10px;color:var(--muted)">匯率 1 JPY = ${getLiveRate().toFixed(3)} TWD</span>
-  `;
-}
-
-// ── TRANSIT TIME ──
-window.addTransit = (dayId, stopId) => {
-  const d = DATA.days.find(x => x.id === dayId);
-  if (!d) return;
-  const s = d.stops.find(x => x.id === stopId);
-  if (!s) return;
-  s.transit = '15';
-  render();
-  setTimeout(() => {
-    const el = document.querySelector(`[data-id="${stopId}"] .transit-time-input`);
-    if (el) { el.focus(); el.select(); }
-  }, 50);
-};
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('modalOverlay'))document.getElementById('modalOverlay').classList.add('hidden');});
 
 // ── TEMPLATE MODAL ──
-const TEMPLATES = [
-  { icon:'⛩️', name:'神社', fields:[{label:'參拜時間',body:''},{label:'御守購買',body:''}] },
-  { icon:'🍜', name:'餐廳', fields:[{label:'訂位資訊',body:''},{label:'必點料理',body:''}] },
-  { icon:'🛍️', name:'購物', fields:[{label:'購物清單',body:''},{label:'預算上限',body:''}] },
-  { icon:'🚆', name:'交通', fields:[{label:'路線',body:''},{label:'票價',body:''}] },
-  { icon:'🏨', name:'住宿', fields:[{label:'Check-in',body:''},{label:'地址',body:''}] },
-  { icon:'🎡', name:'景點', fields:[{label:'開放時間',body:''},{label:'票價',body:''}] },
-  { icon:'📝', name:'空白', fields:[] },
-];
-
-let templateTargetDay = null;
-
-window.openTemplateModal = (dayId) => {
-  templateTargetDay = dayId;
-  const grid = document.getElementById('templateGrid');
-  grid.innerHTML = '';
-  TEMPLATES.forEach(t => {
-    const btn = document.createElement('button');
-    btn.className = 'template-btn';
-    btn.innerHTML = `<span class="t-icon">${t.icon}</span><span class="t-name">${t.name}</span>`;
-    btn.onclick = () => applyTemplate(t);
+function openTemplateModal(dayId) {
+  templateTargetDay=dayId;
+  const grid=document.getElementById('templateGrid');
+  grid.innerHTML='';
+  TEMPLATES.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='template-btn';
+    btn.innerHTML=`<span class="t-icon">${t.icon}</span><span class="t-name">${t.name}</span>`;
+    btn.addEventListener('click',()=>applyTemplate(t));
     grid.appendChild(btn);
   });
   document.getElementById('templateModalOverlay').classList.remove('hidden');
-};
-
-window.closeTemplateModal = () => {
-  document.getElementById('templateModalOverlay').classList.add('hidden');
-  templateTargetDay = null;
-};
-
-function applyTemplate(t) {
-  const d = DATA.days.find(x => x.id === templateTargetDay);
-  if (!d) return;
-  const id = 's' + Date.now();
-  const newStop = {
-    id, icon: t.icon, name: '', note: '',
-    fields: t.fields.map((f, i) => ({ id: 'sf' + (Date.now() + i), label: f.label, body: f.body }))
-  };
-  d.stops.push(newStop);
-  closeTemplateModal();
-  render();
-  setTimeout(() => {
-    const el = document.querySelector(`[data-id="${id}"] .stop-name-input`);
-    if (el) el.focus();
-  }, 60);
 }
+function applyTemplate(t) {
+  const d=DATA.days.find(x=>x.id===templateTargetDay); if(!d)return;
+  const id='s'+Date.now();
+  d.stops.push({id,icon:t.icon,name:'',note:'',fields:t.fields.map((f,i)=>({id:'sf'+(Date.now()+i),label:f.label,body:f.body}))});
+  document.getElementById('templateModalOverlay').classList.add('hidden');
+  render(); scheduleSave();
+  setTimeout(()=>{const el=document.querySelector(`[data-stopname="${id}"]`);if(el)el.focus();},60);
+}
+document.getElementById('cancelTemplate').addEventListener('click',()=>document.getElementById('templateModalOverlay').classList.add('hidden'));
+document.getElementById('templateModalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('templateModalOverlay'))document.getElementById('templateModalOverlay').classList.add('hidden');});
 
-document.getElementById('templateModalOverlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('templateModalOverlay')) closeTemplateModal();
-});
-
-
-// ── STOP-LEVEL TEMPLATE PICKER ──
-
-window.toggleStopTpl = (stopId, dayId, e) => {
+// ── STOP TEMPLATE DROPDOWN ──
+function toggleStopTpl(stopId, dayId, e) {
   e.stopPropagation();
-  const drop = document.getElementById('tpldrop-' + stopId);
-  if (!drop) return;
-  const isHidden = drop.classList.contains('hidden');
+  const drop=document.getElementById('tpldrop-'+stopId); if(!drop)return;
+  const isHidden=drop.classList.contains('hidden');
   closeAllStopTpls();
-  if (!isHidden) return; // toggle off
-  // Build menu fresh each time
-  drop.innerHTML = '<div class="stop-tpl-header">選擇範本類型</div>';
-  TEMPLATES.forEach(t => {
-    const btn = document.createElement('button');
-    btn.className = 'stop-tpl-item';
-    const fieldNames = t.fields.length
-      ? t.fields.map(f => f.label).join('・')
-      : '不加欄位';
-    btn.innerHTML = `<span class="stop-tpl-icon">${t.icon}</span>
-      <span class="tpl-name">${t.name}</span>
-      <span class="tpl-fields">${fieldNames}</span>`;
-    btn.addEventListener('click', ev => {
-      ev.stopPropagation();
-      applyTemplateToStop(dayId, stopId, t);
-      drop.classList.add('hidden');
-    });
+  if(!isHidden)return;
+  drop.innerHTML='<div class="stop-tpl-header">選擇範本類型</div>';
+  TEMPLATES.forEach(t=>{
+    const btn=document.createElement('button');
+    btn.className='stop-tpl-item';
+    const fieldNames=t.fields.length?t.fields.map(f=>f.label).join('・'):'不加欄位';
+    btn.innerHTML=`<span class="stop-tpl-icon">${t.icon}</span><span class="tpl-name">${t.name}</span><span class="tpl-fields">${fieldNames}</span>`;
+    btn.addEventListener('click',ev=>{ev.stopPropagation();applyTemplateToStop(dayId,stopId,t);drop.classList.add('hidden');});
     drop.appendChild(btn);
   });
   drop.classList.remove('hidden');
-};
-
-function closeAllStopTpls() {
-  document.querySelectorAll('.stop-template-dropdown').forEach(d => d.classList.add('hidden'));
 }
+function closeAllStopTpls(){document.querySelectorAll('.stop-template-dropdown').forEach(d=>d.classList.add('hidden'));}
+function applyTemplateToStop(dayId,stopId,t){
+  const d=DATA.days.find(x=>x.id===dayId); if(!d)return;
+  const s=d.stops.find(x=>x.id===stopId); if(!s)return;
+  if(!s.fields)s.fields=[];
+  const existing=s.fields.map(f=>f.label);
+  t.fields.forEach((f,i)=>{if(!existing.includes(f.label))s.fields.push({id:'sf'+(Date.now()+i),label:f.label,body:f.body});});
+  render(); scheduleSave(); toast(`已套用「${t.name}」範本`);
+}
+document.addEventListener('click',()=>closeAllStopTpls());
 
-function applyTemplateToStop(dayId, stopId, t) {
-  const d = DATA.days.find(x => x.id === dayId);
-  if (!d) return;
-  const s = d.stops.find(x => x.id === stopId);
-  if (!s) return;
-  if (!s.fields) s.fields = [];
-  // append fields (skip if label already exists)
-  const existingLabels = s.fields.map(f => f.label);
-  t.fields.forEach((f, i) => {
-    if (!existingLabels.includes(f.label)) {
-      s.fields.push({ id: 'sf' + (Date.now() + i), label: f.label, body: f.body });
-    }
+// ── EMOJI PICKER ──
+function openEmojiPicker(target, anchor) {
+  closeAllPickers();
+  emojiTarget=target;
+  const picker=document.createElement('div');
+  picker.className='emoji-picker';
+  EMOJIS.forEach(em=>{
+    const sp=document.createElement('span');
+    sp.textContent=em;
+    sp.addEventListener('click',ev=>{ev.stopPropagation();selectEmoji(em);});
+    picker.appendChild(sp);
   });
-  render();
-  scheduleSave();
-  toast(`已套用「${t.name}」範本`);
+  anchor.style.position='relative';
+  anchor.appendChild(picker);
 }
+function selectEmoji(em){
+  if(!emojiTarget)return;
+  if(emojiTarget.type==='day'){const d=DATA.days.find(x=>x.id===emojiTarget.id);if(d)d.emoji=em;}
+  else{const d=DATA.days.find(x=>x.id===emojiTarget.dayId);if(d){const s=d.stops.find(x=>x.id===emojiTarget.stopId);if(s)s.icon=em;}}
+  closeAllPickers(); render(); scheduleSave();
+}
+function closeAllPickers(){document.querySelectorAll('.emoji-picker').forEach(p=>p.remove());}
+document.addEventListener('click',closeAllPickers);
 
-document.addEventListener('click', () => closeAllStopTpls());
-
-
-// ── PANEL CONTROLS ──
-window.togglePanel = function(id) {
-  const panel = document.getElementById(id);
-  const isOpen = panel.classList.contains('open');
+// ── PANELS ──
+function togglePanel(id){
+  const panel=document.getElementById(id);
+  const isOpen=panel.classList.contains('open');
   closeAllPanels();
-  if (!isOpen) {
+  if(!isOpen){
     panel.classList.add('open');
-    document.getElementById('panelOverlay').style.display = 'block';
-    if (id === 'packPanel') renderPackList();
-    if (id === 'currencyPanel') {
-    // restore saved rate from cloud data
-    const savedRate = DATA.meta?.customRate;
-    const ri = document.getElementById('rateInput');
-    if (savedRate && ri) ri.value = savedRate;
-    renderQuickCalc();
-    // auto-fetch live rate on first open
-    fetchLiveRate();
+    document.getElementById('panelOverlay').style.display='block';
+    if(id==='packPanel')renderPackList();
+    if(id==='ledgerPanel')renderLedger();
+    if(id==='currencyPanel'){
+      const savedRate=DATA.meta?.customRate;
+      const ri=document.getElementById('rateInput');
+      if(savedRate&&ri)ri.value=savedRate;
+      renderQuickCalc();
+      fetchLiveRate();
+    }
   }
-  }
 }
-window.closePanel = function(id) {
-  document.getElementById(id).classList.remove('open');
-  document.getElementById('panelOverlay').style.display = 'none';
+function closeAllPanels(){
+  document.querySelectorAll('.slide-panel').forEach(p=>p.classList.remove('open'));
+  document.getElementById('panelOverlay').style.display='none';
 }
-window.closeAllPanels = function() {
-  document.querySelectorAll('.slide-panel').forEach(p => p.classList.remove('open'));
-  document.getElementById('panelOverlay').style.display = 'none';
-}
+document.getElementById('packBtn').addEventListener('click',()=>togglePanel('packPanel'));
+document.getElementById('currencyBtn').addEventListener('click',()=>togglePanel('currencyPanel'));
+document.getElementById('closeCurrencyBtn').addEventListener('click',()=>closeAllPanels());
+document.getElementById('closePackBtn').addEventListener('click',()=>closeAllPanels());
+document.getElementById('panelOverlay').addEventListener('click',closeAllPanels);
 
 // ── CURRENCY ──
-// ── CURRENCY ──
-function getRate() {
-  return parseFloat(document.getElementById('rateInput')?.value)
-    || DATA.meta?.customRate
-    || 0.221;
-}
+function getRate(){return parseFloat(document.getElementById('rateInput')?.value)||DATA.meta?.customRate||0.221;}
+function saveRate(){if(!DATA.meta)DATA.meta={};DATA.meta.customRate=getRate();scheduleSave();}
 
-window.saveRate = function saveRate() {
-  if (!DATA.meta) DATA.meta = {};
-  DATA.meta.customRate = getRate();
-  scheduleSave();
-}
-
-async window.fetchLiveRate = async function() {
-  const btn = document.getElementById('refreshRateBtn');
-  const icon = document.getElementById('refreshIcon');
-  const note = document.getElementById('rateNote');
-  const src  = document.getElementById('rateSource');
-  if (btn) btn.disabled = true;
-  if (icon) icon.textContent = '⏳';
-  if (note) note.textContent = '抓取中…';
-  try {
-    // frankfurter.app — free, no key needed
-    const res = await fetch('https://api.frankfurter.app/latest?from=JPY&to=TWD');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const data = await res.json();
-    const rate = data.rates?.TWD;
-    if (!rate) throw new Error('no TWD rate');
-    const rateInput = document.getElementById('rateInput');
-    if (rateInput) rateInput.value = rate.toFixed(4);
-    saveRate();
-    calcCurrency('jpy');
-    const date = data.date || new Date().toLocaleDateString('zh-TW');
-    if (note) note.textContent = '即時匯率 ✓';
-    if (src)  src.textContent  = `資料來源：frankfurter.app・${date}`;
-  } catch(e) {
-    if (note) note.textContent = '目前匯率（手動）';
-    if (src)  src.textContent  = '無法取得即時匯率，請手動輸入';
-  } finally {
-    if (btn)  btn.disabled = false;
-    if (icon) icon.textContent = '🔄';
+async function fetchLiveRate(){
+  const btn=document.getElementById('refreshRateBtn'),icon=document.getElementById('refreshIcon');
+  const note=document.getElementById('rateNote'),src=document.getElementById('rateSource');
+  if(btn)btn.disabled=true; if(icon)icon.textContent='⏳'; if(note)note.textContent='抓取中…';
+  try{
+    const res=await fetch('https://api.frankfurter.app/latest?from=JPY&to=TWD');
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const rate=data.rates?.TWD; if(!rate)throw new Error('no TWD');
+    const ri=document.getElementById('rateInput'); if(ri)ri.value=rate.toFixed(4);
+    saveRate(); calcCurrency('jpy');
+    if(note)note.textContent='即時匯率 ✓';
+    if(src)src.textContent='資料來源：frankfurter.app・'+(data.date||'');
+  }catch(e){
+    if(note)note.textContent='目前匯率（手動）';
+    if(src)src.textContent='無法取得即時匯率，請手動輸入';
+  }finally{
+    if(btn)btn.disabled=false; if(icon)icon.textContent='🔄';
   }
 }
 
-window.calcCurrency = function(from) {
-  const rate = getRate();
-  if (from === 'jpy') {
-    const jpy = parseFloat(document.getElementById('jpyInput').value) || 0;
-    const twd = jpy * rate;
-    document.getElementById('twdInput').value = twd ? twd.toFixed(1) : '';
-    document.getElementById('currencyResult').textContent = 'NT$ ' + Math.round(twd).toLocaleString();
-    document.getElementById('currencyResultJpy').textContent = jpy ? '¥' + jpy.toLocaleString() : '';
-  } else if (from === 'twd') {
-    const twd = parseFloat(document.getElementById('twdInput').value) || 0;
-    const jpy = twd / rate;
-    document.getElementById('jpyInput').value = jpy ? Math.round(jpy) : '';
-    document.getElementById('currencyResult').textContent = 'NT$ ' + Math.round(twd).toLocaleString();
-    document.getElementById('currencyResultJpy').textContent = jpy ? '¥' + Math.round(jpy).toLocaleString() : '';
-  } else {
-    calcCurrency('jpy');
-  }
+function calcCurrency(from){
+  const rate=getRate();
+  if(from==='jpy'){
+    const jpy=parseFloat(document.getElementById('jpyInput').value)||0;
+    const twd=jpy*rate;
+    document.getElementById('twdInput').value=twd?twd.toFixed(1):'';
+    document.getElementById('currencyResult').textContent='NT$ '+Math.round(twd).toLocaleString();
+    document.getElementById('currencyResultJpy').textContent=jpy?'¥'+jpy.toLocaleString():'';
+  }else if(from==='twd'){
+    const twd=parseFloat(document.getElementById('twdInput').value)||0;
+    const jpy=twd/rate;
+    document.getElementById('jpyInput').value=jpy?Math.round(jpy):'';
+    document.getElementById('currencyResult').textContent='NT$ '+Math.round(twd).toLocaleString();
+    document.getElementById('currencyResultJpy').textContent=jpy?'¥'+Math.round(jpy).toLocaleString():'';
+  }else calcCurrency('jpy');
   renderQuickCalc();
 }
 
-window.renderQuickCalc = function() {
-  const grid = document.getElementById('quickCalc');
-  if (!grid) return;
-  const rate = getRate();
-  const amounts = [500, 1000, 2000, 5000, 10000, 20000, 50000];
-  grid.innerHTML = amounts.map(jpy => `
-    <div style="background:#f5f3ef;border-radius:8px;padding:7px 10px;font-size:11px;cursor:pointer;transition:background .15s"
-      onmouseover="this.style.background='#e8e4dc'" onmouseout="this.style.background='#f5f3ef'"
-      onclick="document.getElementById('jpyInput').value=${jpy};calcCurrency('jpy')">
-      <div style="font-weight:700;color:var(--text)">¥${jpy.toLocaleString()}</div>
-      <div style="color:var(--muted)">NT$${Math.round(jpy * rate).toLocaleString()}</div>
-    </div>
-  `).join('');
+function renderQuickCalc(){
+  const grid=document.getElementById('quickCalc'); if(!grid)return;
+  const rate=getRate();
+  [500,1000,2000,5000,10000,20000,50000].forEach(jpy=>{
+    const div=document.createElement('div');
+    div.style.cssText='background:#f5f3ef;border-radius:8px;padding:7px 10px;font-size:11px;cursor:pointer';
+    div.innerHTML=`<div style="font-weight:700;color:var(--text)">¥${jpy.toLocaleString()}</div><div style="color:var(--muted)">NT$${Math.round(jpy*rate).toLocaleString()}</div>`;
+    div.addEventListener('click',()=>{document.getElementById('jpyInput').value=jpy;calcCurrency('jpy');});
+    grid.appendChild(div);
+  });
 }
 
-// load saved rate when panel opens
-const _origTogglePanel = typeof togglePanel !== 'undefined' ? togglePanel : null;
+document.getElementById('jpyInput').addEventListener('input',()=>calcCurrency('jpy'));
+document.getElementById('twdInput').addEventListener('input',()=>calcCurrency('twd'));
+document.getElementById('rateInput').addEventListener('input',()=>{calcCurrency('jpy');saveRate();});
+document.getElementById('refreshRateBtn').addEventListener('click',fetchLiveRate);
 
 // ── PACKING LIST ──
-const DEFAULT_PACK = {
-  sections: [
-    { id:'ps1', name:'證件與金融', items:[
-      {id:'pi1',label:'護照',checked:false},
-      {id:'pi2',label:'簽證（電子）',checked:false},
-      {id:'pi3',label:'信用卡',checked:false},
-      {id:'pi4',label:'備用現金',checked:false},
-    ]},
-    { id:'ps2', name:'3C 與充電', items:[
-      {id:'pi5',label:'手機',checked:false},
-      {id:'pi6',label:'充電線',checked:false},
-      {id:'pi7',label:'變壓器／插頭轉換',checked:false},
-      {id:'pi8',label:'行動電源',checked:false},
-      {id:'pi9',label:'相機',checked:false},
-    ]},
-    { id:'ps3', name:'衣物', items:[
-      {id:'pi10',label:'上衣 × 天數',checked:false},
-      {id:'pi11',label:'外套',checked:false},
-      {id:'pi12',label:'內衣褲',checked:false},
-      {id:'pi13',label:'舒適步行鞋',checked:false},
-    ]},
-    { id:'ps4', name:'盥洗與藥品', items:[
-      {id:'pi14',label:'牙刷牙膏',checked:false},
-      {id:'pi15',label:'洗面乳',checked:false},
-      {id:'pi16',label:'防曬乳',checked:false},
-      {id:'pi17',label:'感冒藥',checked:false},
-      {id:'pi18',label:'腸胃藥',checked:false},
-    ]},
-    { id:'ps5', name:'其他', items:[
-      {id:'pi19',label:'Suica / IC 卡',checked:false},
-      {id:'pi20',label:'雨傘',checked:false},
-      {id:'pi21',label:'環保袋',checked:false},
-    ]},
-  ]
-};
+function getPackData(){if(!DATA.packing)DATA.packing=JSON.parse(JSON.stringify(DEFAULT_PACK));return DATA.packing;}
 
-function getPackData() {
-  if (!DATA.packing) DATA.packing = JSON.parse(JSON.stringify(DEFAULT_PACK));
-  return DATA.packing;
-}
-
-window.renderPackList = function() {
-  const body = document.getElementById('packBody');
-  if (!body) return;
-  const pack = getPackData();
-  const allItems = pack.sections.flatMap(s => s.items);
-  const checkedCount = allItems.filter(i => i.checked).length;
-  const total = allItems.length;
-  const pct = total ? Math.round(checkedCount / total * 100) : 0;
-
-  let html = `
-    <div class="pack-progress"><div class="pack-progress-bar" style="width:${pct}%"></div></div>
-    <div class="pack-stats">${checkedCount} / ${total} 已確認</div>
-  `;
-
-  pack.sections.forEach(sec => {
-    html += `<div class="pack-section">
-      <div class="pack-section-title">${sec.name}
-        <span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none">
-          ${sec.items.filter(i=>i.checked).length}/${sec.items.length}
-        </span>
-      </div>`;
-    sec.items.forEach(item => {
-      html += `<div class="pack-item">
-        <div class="pack-check${item.checked?' checked':''}" onclick="togglePackItem('${sec.id}','${item.id}')"></div>
-        <input class="pack-label${item.checked?' checked-text':''}" value="${escA(item.label)}"
-          onchange="updatePackItem('${sec.id}','${item.id}',this.value)">
-        <button class="pack-del" onclick="deletePackItem('${sec.id}','${item.id}')">✕</button>
-      </div>`;
+function renderPackList(){
+  const body=document.getElementById('packBody'); if(!body)return;
+  const pack=getPackData();
+  const allItems=pack.sections.flatMap(s=>s.items);
+  const checked=allItems.filter(i=>i.checked).length, total=allItems.length;
+  const pct=total?Math.round(checked/total*100):0;
+  let html=`<div class="pack-progress"><div class="pack-progress-bar" style="width:${pct}%"></div></div><div class="pack-stats">${checked} / ${total} 已確認</div>`;
+  pack.sections.forEach(sec=>{
+    html+=`<div class="pack-section"><div class="pack-section-title">${sec.name}<span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none">${sec.items.filter(i=>i.checked).length}/${sec.items.length}</span></div>`;
+    sec.items.forEach(item=>{
+      html+=`<div class="pack-item"><div class="pack-check${item.checked?' checked':''}" data-packcheck="${item.id}" data-secid="${sec.id}"></div><input class="pack-label${item.checked?' checked-text':''}" value="${escA(item.label)}" data-packlabel="${item.id}" data-secid="${sec.id}"><button class="pack-del" data-packdel="${item.id}" data-secid="${sec.id}">✕</button></div>`;
     });
-    html += `<div class="pack-add-row">
-      <input class="pack-add-input" id="packinput-${sec.id}" placeholder="新增項目…"
-        onkeydown="if(event.key==='Enter')addPackItem('${sec.id}')">
-      <button class="pack-add-btn" onclick="addPackItem('${sec.id}')">＋</button>
-    </div></div>`;
+    html+=`<div class="pack-add-row"><input class="pack-add-input" id="packinput-${sec.id}" placeholder="新增項目…"><button class="pack-add-btn" data-packadd="${sec.id}">＋</button></div></div>`;
   });
-
-  body.innerHTML = html;
+  body.innerHTML=html;
+  body.querySelectorAll('[data-packcheck]').forEach(el=>el.addEventListener('click',()=>{
+    const sec=getPackData().sections.find(s=>s.id===el.dataset.secid);
+    const item=sec?.items.find(i=>i.id===el.dataset.packcheck);
+    if(item){item.checked=!item.checked;scheduleSave();renderPackList();}
+  }));
+  body.querySelectorAll('[data-packlabel]').forEach(el=>el.addEventListener('change',()=>{
+    const sec=getPackData().sections.find(s=>s.id===el.dataset.secid);
+    const item=sec?.items.find(i=>i.id===el.dataset.packlabel);
+    if(item){item.label=el.value;scheduleSave();}
+  }));
+  body.querySelectorAll('[data-packdel]').forEach(el=>el.addEventListener('click',()=>{
+    const sec=getPackData().sections.find(s=>s.id===el.dataset.secid);
+    if(sec){sec.items=sec.items.filter(i=>i.id!==el.dataset.packdel);scheduleSave();renderPackList();}
+  }));
+  body.querySelectorAll('[data-packadd]').forEach(el=>el.addEventListener('click',()=>{
+    const input=document.getElementById('packinput-'+el.dataset.packadd);
+    const label=input?.value.trim(); if(!label)return;
+    const sec=getPackData().sections.find(s=>s.id===el.dataset.packadd);
+    if(sec){sec.items.push({id:'pi'+Date.now(),label,checked:false});input.value='';scheduleSave();renderPackList();}
+  }));
+  body.querySelectorAll('.pack-add-input').forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter'){const btn=body.querySelector(`[data-packadd="${el.id.replace('packinput-','')}"]`);btn?.click();}}));
 }
-
-window.togglePackItem = (secId, itemId) => {
-  const sec = getPackData().sections.find(s => s.id === secId);
-  if (!sec) return;
-  const item = sec.items.find(i => i.id === itemId);
-  if (item) { item.checked = !item.checked; scheduleSave(); renderPackList(); }
-};
-window.updatePackItem = (secId, itemId, val) => {
-  const sec = getPackData().sections.find(s => s.id === secId);
-  if (!sec) return;
-  const item = sec.items.find(i => i.id === itemId);
-  if (item) { item.label = val; scheduleSave(); }
-};
-window.deletePackItem = (secId, itemId) => {
-  const sec = getPackData().sections.find(s => s.id === secId);
-  if (!sec) return;
-  sec.items = sec.items.filter(i => i.id !== itemId);
-  scheduleSave(); renderPackList();
-};
-window.addPackItem = (secId) => {
-  const input = document.getElementById('packinput-' + secId);
-  const label = input?.value.trim();
-  if (!label) return;
-  const sec = getPackData().sections.find(s => s.id === secId);
-  if (!sec) return;
-  sec.items.push({ id: 'pi' + Date.now(), label, checked: false });
-  input.value = '';
-  scheduleSave(); renderPackList();
-};
-
-// ── FILTER BAR ──
-let activeFilterId = 'all';
-
-function renderFilterBar() {
-  const bar = document.getElementById('day-filters');
-  if (!bar) return;
-  bar.innerHTML = '';
-
-  // 全部按鈕
-  const allBtn = document.createElement('button');
-  allBtn.className = 'filter-btn filter-all' + (activeFilterId === 'all' ? ' active' : '');
-  allBtn.textContent = '全部';
-  allBtn.onclick = () => { activeFilterId = 'all'; renderFilterBar(); applyFilter(); };
-  bar.appendChild(allBtn);
-
-  // 每天一個按鈕，標籤可編輯
-  DATA.days.forEach(day => {
-    const btn = document.createElement('button');
-    btn.className = 'filter-btn' + (activeFilterId === day.id ? ' active' : '');
-    btn.setAttribute('data-dayid', day.id);
-
-    const label = document.createElement('span');
-    label.className = 'filter-btn-label';
-    label.contentEditable = 'true';
-    label.spellcheck = false;
-    label.textContent = day.num || 'D?';
-    label.title = day.title;
-
-    // 點 label 不觸發 btn 的 onclick
-    label.onclick = e => e.stopPropagation();
-    label.onblur = e => {
-      const val = label.textContent.trim();
-      if (val) {
-        updateDay(day.id, 'num', val);
-        // 同步更新行程卡片上的 day-num
-        const numEl = document.querySelector(`.day-card[data-id="${day.id}"] .day-num`);
-        if (numEl) numEl.textContent = val;
-      } else {
-        label.textContent = day.num;
-      }
-    };
-    label.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); label.blur(); } };
-
-    btn.onclick = () => { activeFilterId = day.id; renderFilterBar(); applyFilter(); };
-    btn.appendChild(label);
-    bar.appendChild(btn);
-  });
-}
-
-function applyFilter() {
-  document.querySelectorAll('.day-section').forEach(sec => {
-    const card = sec.querySelector('.day-card');
-    if (!card) return;
-    const id = card.getAttribute('data-id');
-    sec.style.display = (activeFilterId === 'all' || id === activeFilterId) ? '' : 'none';
-  });
-}
-
-window.collapseAll=()=>document.querySelectorAll('.day-card').forEach(c=>c.classList.add('collapsed'));
 
 // ── TOAST ──
-window.toast=(msg)=>{
-  const el=document.getElementById('toast');
-  el.textContent=msg;el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'),2400);
-};
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
+
+
+// ── LEDGER ──
+const LEDGER_CATS = ['全部','餐飲','交通','購物','票券','住宿','其他'];
+const LEDGER_ICONS = {'餐飲':'🍜','交通':'🚆','購物':'🛍️','票券':'🎫','住宿':'🏨','其他':'📝'};
+
+function getLedger(){
+  if(!DATA.ledger) DATA.ledger={budget:null,entries:[]};
+  return DATA.ledger;
+}
+
+function renderLedger(){
+  const body=document.getElementById('ledgerBody'); if(!body)return;
+  const ledger=getLedger();
+  const entries=ledger.entries||[];
+  const total=entries.reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const budget=ledger.budget!=null?Number(ledger.budget):null;
+  const remaining=budget!=null?budget-total:null;
+  const pct=budget>0?Math.min(100,Math.round(total/budget*100)):0;
+  const over=budget!=null&&total>budget;
+
+  const activeCat=ledger.activeCat||'全部';
+
+  let html=`
+  <div class="ledger-hero">
+    <div class="ledger-hero-label">旅行總預算</div>
+    <div class="ledger-budget-row">
+      <div class="ledger-budget-num" id="ledgerBudgetDisplay">${budget!=null?'NT$'+Number(budget).toLocaleString():'未設定'}</div>
+    </div>
+    <div class="ledger-budget-input-row">
+      <span style="font-size:12px;opacity:.75;white-space:nowrap">NT$</span>
+      <input class="ledger-budget-input" id="ledgerBudgetInput" type="number" placeholder="輸入總預算金額" value="${budget!=null?budget:''}">
+    </div>
+    ${budget!=null?`
+    <div style="margin-top:14px">
+      <div class="ledger-bar-wrap"><div class="ledger-bar${over?' over':''}" style="width:${pct}%"></div></div>
+      <div class="ledger-stats">
+        <span>已花費 NT$${total.toLocaleString()} (${pct}%)</span>
+        <span style="color:${over?'#f87171':'rgba(255,255,255,.9)';}">${over?'超支 NT$'+(total-budget).toLocaleString():'剩餘 NT$'+remaining.toLocaleString()}</span>
+      </div>
+    </div>`:''}
+  </div>
+
+  <div class="ledger-cat-tabs">
+    ${LEDGER_CATS.map(c=>`<button class="ledger-cat-tab${activeCat===c?' active':''}" data-ledgercat="${c}">${c}</button>`).join('')}
+  </div>`;
+
+  const filtered=activeCat==='全部'?entries:entries.filter(e=>e.cat===activeCat);
+
+  if(filtered.length===0){
+    html+=`<div class="ledger-empty">還沒有記帳紀錄<br><span style="font-size:11px">在下方新增第一筆支出</span></div>`;
+  }else{
+    html+=`<div>`;
+    filtered.forEach(e=>{
+      html+=`<div class="ledger-entry">
+        <span class="ledger-entry-icon">${LEDGER_ICONS[e.cat]||'📝'}</span>
+        <input class="ledger-entry-name" value="${escA(e.name)}" data-ledgername="${e.id}" placeholder="支出名稱">
+        <input class="ledger-entry-amount" type="number" value="${e.amount||''}" data-ledgeramount="${e.id}" placeholder="0">
+        <span class="ledger-entry-curr">TWD</span>
+        <button class="ledger-entry-del" data-ledgerdel="${e.id}">✕</button>
+      </div>`;
+    });
+    if(filtered.length>0){
+      const subtotal=filtered.reduce((s,e)=>s+(Number(e.amount)||0),0);
+      html+=`<div style="text-align:right;font-size:12px;font-weight:700;color:#7c3aed;padding:8px 4px 0">小計 NT$${subtotal.toLocaleString()}</div>`;
+    }
+    html+=`</div>`;
+  }
+
+  html+=`
+  <div class="ledger-section-title">新增支出</div>
+  <div class="ledger-add-row">
+    <input class="ledger-add-input" id="ledgerAddName" placeholder="支出名稱">
+    <input class="ledger-add-amount" id="ledgerAddAmount" type="number" placeholder="金額">
+  </div>
+  <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+    ${['餐飲','交通','購物','票券','住宿','其他'].map(c=>`<button class="ledger-cat-tab${(ledger.newCat||'餐飲')===c?' active':''}" data-ledgernewcat="${c}" style="font-size:10px;padding:2px 8px">${LEDGER_ICONS[c]} ${c}</button>`).join('')}
+  </div>
+  <button class="ledger-add-btn" id="ledgerAddBtn" style="width:100%;margin-top:8px">＋ 新增</button>
+  `;
+
+  body.innerHTML=html;
+
+  // bind events
+  body.querySelector('#ledgerBudgetInput')?.addEventListener('change',e=>{
+    const v=e.target.value===''?null:Number(e.target.value);
+    getLedger().budget=v; scheduleSave(); renderLedger();
+  });
+  body.querySelectorAll('[data-ledgercat]').forEach(btn=>btn.addEventListener('click',()=>{
+    getLedger().activeCat=btn.dataset.ledgercat; renderLedger();
+  }));
+  body.querySelectorAll('[data-ledgernewcat]').forEach(btn=>btn.addEventListener('click',()=>{
+    getLedger().newCat=btn.dataset.ledgernewcat; renderLedger();
+  }));
+  body.querySelectorAll('[data-ledgername]').forEach(input=>input.addEventListener('change',()=>{
+    const e=getLedger().entries.find(x=>x.id===input.dataset.ledgername);
+    if(e){e.name=input.value;scheduleSave();}
+  }));
+  body.querySelectorAll('[data-ledgeramount]').forEach(input=>input.addEventListener('change',()=>{
+    const e=getLedger().entries.find(x=>x.id===input.dataset.ledgeramount);
+    if(e){e.amount=input.value===''?null:Number(input.value);scheduleSave();renderLedger();}
+  }));
+  body.querySelectorAll('[data-ledgerdel]').forEach(btn=>btn.addEventListener('click',()=>{
+    const ledger=getLedger();
+    ledger.entries=ledger.entries.filter(e=>e.id!==btn.dataset.ledgerdel);
+    scheduleSave(); renderLedger();
+  }));
+  body.querySelector('#ledgerAddBtn')?.addEventListener('click',()=>{
+    const name=document.getElementById('ledgerAddName')?.value.trim();
+    const amount=document.getElementById('ledgerAddAmount')?.value;
+    if(!name&&!amount)return;
+    const ledger=getLedger();
+    ledger.entries.push({
+      id:'le'+Date.now(),
+      name:name||'支出',
+      amount:amount?Number(amount):null,
+      cat:ledger.newCat||'餐飲',
+    });
+    scheduleSave(); renderLedger();
+  });
+  body.querySelector('#ledgerAddName')?.addEventListener('keydown',e=>{
+    if(e.key==='Enter') body.querySelector('#ledgerAddBtn')?.click();
+  });
+  body.querySelector('#ledgerAddAmount')?.addEventListener('keydown',e=>{
+    if(e.key==='Enter') body.querySelector('#ledgerAddBtn')?.click();
+  });
+}
+
+document.getElementById('ledgerBtn').addEventListener('click',()=>togglePanel('ledgerPanel'));
+document.getElementById('closeLedgerBtn').addEventListener('click',()=>closeAllPanels());
+
+// ── DRAG AUTO-SCROLL ──
+let autoScrollRAF=null;
+function startAutoScroll(e){
+  const ZONE=100, SPEED=12;
+  const y=e.clientY;
+  const vh=window.innerHeight;
+  cancelAnimationFrame(autoScrollRAF);
+  function step(){
+    if(y<ZONE) window.scrollBy(0,-SPEED*(1-(y/ZONE)));
+    else if(y>vh-ZONE) window.scrollBy(0,SPEED*(1-((vh-y)/ZONE)));
+    autoScrollRAF=requestAnimationFrame(step);
+  }
+  autoScrollRAF=requestAnimationFrame(step);
+}
+function stopAutoScroll(){ cancelAnimationFrame(autoScrollRAF); autoScrollRAF=null; }
+document.addEventListener('dragover',e=>startAutoScroll(e));
+document.addEventListener('dragend',stopAutoScroll);
+document.addEventListener('drop',stopAutoScroll);
+
+// ── START ──
+init();
 </script>
 </body>
 </html>
