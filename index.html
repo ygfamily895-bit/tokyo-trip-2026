@@ -1286,31 +1286,58 @@ function getLedger(){
 function renderLedger(){
   const body=document.getElementById('ledgerBody'); if(!body)return;
   const ledger=getLedger();
+  const rate=getLiveRate();
   const entries=ledger.entries||[];
-  const total=entries.reduce((s,e)=>s+(Number(e.amount)||0),0);
-  const budget=ledger.budget!=null?Number(ledger.budget):null;
-  const remaining=budget!=null?budget-total:null;
-  const pct=budget>0?Math.min(100,Math.round(total/budget*100)):0;
-  const over=budget!=null&&total>budget;
 
+  // total in TWD (convert JPY entries if needed)
+  const totalTwd=entries.reduce((s,e)=>{
+    if(e.amountTwd!=null) return s+Number(e.amountTwd);
+    if(e.amount!=null) return s+Math.round(Number(e.amount)*rate);
+    return s;
+  },0);
+  const totalJpy=entries.reduce((s,e)=>{
+    if(e.amount!=null) return s+Number(e.amount);
+    if(e.amountTwd!=null) return s+Math.round(Number(e.amountTwd)/rate);
+    return s;
+  },0);
+
+  const budgetTwd=ledger.budgetTwd!=null?Number(ledger.budgetTwd):null;
+  const budgetJpy=ledger.budgetJpy!=null?Number(ledger.budgetJpy):null;
+  // use TWD budget as primary; if only JPY set, convert
+  const budgetBase=budgetTwd!=null?budgetTwd:(budgetJpy!=null?Math.round(budgetJpy*rate):null);
+  const remaining=budgetBase!=null?budgetBase-totalTwd:null;
+  const pct=budgetBase>0?Math.min(100,Math.round(totalTwd/budgetBase*100)):0;
+  const over=budgetBase!=null&&totalTwd>budgetBase;
   const activeCat=ledger.activeCat||'全部';
 
   let html=`
   <div class="ledger-hero">
     <div class="ledger-hero-label">旅行總預算</div>
-    <div class="ledger-budget-row">
-      <div class="ledger-budget-num" id="ledgerBudgetDisplay">${budget!=null?'NT$'+Number(budget).toLocaleString():'未設定'}</div>
+    <div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:10px;opacity:.7;margin-bottom:2px">台幣 NT$</div>
+        <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:5px">
+          <span style="font-size:11px;opacity:.7">NT$</span>
+          <input class="ledger-budget-input" id="ledgerBudgetTwd" type="number" placeholder="台幣預算"
+            value="${budgetTwd!=null?budgetTwd:''}" style="width:100px">
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:8px;opacity:.6;font-size:18px">⇄</div>
+      <div>
+        <div style="font-size:10px;opacity:.7;margin-bottom:2px">日幣 ¥</div>
+        <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:5px">
+          <span style="font-size:11px;opacity:.7">¥</span>
+          <input class="ledger-budget-input" id="ledgerBudgetJpy" type="number" placeholder="日幣預算"
+            value="${budgetJpy!=null?budgetJpy:''}" style="width:100px">
+        </div>
+      </div>
     </div>
-    <div class="ledger-budget-input-row">
-      <span style="font-size:12px;opacity:.75;white-space:nowrap">NT$</span>
-      <input class="ledger-budget-input" id="ledgerBudgetInput" type="number" placeholder="輸入總預算金額" value="${budget!=null?budget:''}">
-    </div>
-    ${budget!=null?`
-    <div style="margin-top:14px">
+    ${budgetBase!=null?`
+    <div>
       <div class="ledger-bar-wrap"><div class="ledger-bar${over?' over':''}" style="width:${pct}%"></div></div>
       <div class="ledger-stats">
-        <span>已花費 NT$${total.toLocaleString()} (${pct}%)</span>
-        <span style="color:${over?`#f87171`:`rgba(255,255,255,.9)`}">${over?`超支 NT$${(total-budget).toLocaleString()}`:`剩餘 NT$${remaining.toLocaleString()}`}</span>
+        <span>已花費 NT$${totalTwd.toLocaleString()} / ¥${totalJpy.toLocaleString()} (${pct}%)</span>
+        <span style="color:${over?'#f87171':'rgba(255,255,255,.9)'}">${over?'超支 NT$'+(totalTwd-budgetBase).toLocaleString():'剩餘 NT$'+remaining.toLocaleString()}</span>
       </div>
     </div>`:''}
   </div>
@@ -1326,77 +1353,120 @@ function renderLedger(){
   }else{
     html+=`<div>`;
     filtered.forEach(e=>{
-      html+=`<div class="ledger-entry">
+      const eTwd=e.amountTwd!=null?e.amountTwd:(e.amount!=null?Math.round(Number(e.amount)*rate):'');
+      const eJpy=e.amount!=null?e.amount:(e.amountTwd!=null?Math.round(Number(e.amountTwd)/rate):'');
+      html+=`<div class="ledger-entry" style="flex-wrap:wrap;gap:6px">
         <span class="ledger-entry-icon">${LEDGER_ICONS[e.cat]||'📝'}</span>
-        <input class="ledger-entry-name" value="${escA(e.name)}" data-ledgername="${e.id}" placeholder="支出名稱">
-        <input class="ledger-entry-amount" type="number" value="${e.amount||''}" data-ledgeramount="${e.id}" placeholder="0">
-        <span class="ledger-entry-curr">TWD</span>
-        <button class="ledger-entry-del" data-ledgerdel="${e.id}">✕</button>
+        <input class="ledger-entry-name" value="${escA(e.name)}" data-ledgername="${e.id}" placeholder="支出名稱" style="min-width:80px">
+        <div style="display:flex;align-items:center;gap:3px;margin-left:auto">
+          <span style="font-size:10px;color:var(--muted)">¥</span>
+          <input class="ledger-entry-amount" type="number" value="${eJpy}" data-ledgerjpy="${e.id}" placeholder="日幣" style="width:70px">
+          <span style="color:#ccc;font-size:11px">⇄</span>
+          <input class="ledger-entry-amount" type="number" value="${eTwd}" data-ledgertwd="${e.id}" placeholder="台幣" style="width:70px;color:#7c3aed">
+          <span class="ledger-entry-curr">TWD</span>
+        </div>
+        <button class="ledger-entry-del" data-ledgerdel="${e.id}" style="margin-left:0">✕</button>
       </div>`;
     });
-    if(filtered.length>0){
-      const subtotal=filtered.reduce((s,e)=>s+(Number(e.amount)||0),0);
-      html+=`<div style="text-align:right;font-size:12px;font-weight:700;color:#7c3aed;padding:8px 4px 0">小計 NT$${subtotal.toLocaleString()}</div>`;
-    }
-    html+=`</div>`;
+    const subTwd=filtered.reduce((s,e)=>s+(e.amountTwd!=null?Number(e.amountTwd):(e.amount!=null?Math.round(Number(e.amount)*rate):0)),0);
+    const subJpy=filtered.reduce((s,e)=>s+(e.amount!=null?Number(e.amount):(e.amountTwd!=null?Math.round(Number(e.amountTwd)/rate):0)),0);
+    html+=`<div style="text-align:right;font-size:12px;font-weight:700;color:#7c3aed;padding:8px 4px 0">
+      小計 ¥${subJpy.toLocaleString()} / NT$${subTwd.toLocaleString()}
+    </div></div>`;
   }
 
   html+=`
   <div class="ledger-section-title">新增支出</div>
+  <input class="ledger-add-input" id="ledgerAddName" placeholder="支出名稱" style="width:100%;margin-bottom:6px">
   <div class="ledger-add-row">
-    <input class="ledger-add-input" id="ledgerAddName" placeholder="支出名稱">
-    <input class="ledger-add-amount" id="ledgerAddAmount" type="number" placeholder="金額">
+    <div style="flex:1;display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:0 10px">
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap">¥</span>
+      <input id="ledgerAddJpy" type="number" placeholder="日幣" style="border:none;background:transparent;outline:none;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%;padding:7px 0">
+    </div>
+    <span style="color:#ccc;font-size:16px;flex-shrink:0">⇄</span>
+    <div style="flex:1;display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:0 10px">
+      <span style="font-size:11px;color:var(--muted);white-space:nowrap">NT$</span>
+      <input id="ledgerAddTwd" type="number" placeholder="台幣" style="border:none;background:transparent;outline:none;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%;padding:7px 0">
+    </div>
   </div>
   <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
     ${['餐飲','交通','購物','票券','住宿','其他'].map(c=>`<button class="ledger-cat-tab${(ledger.newCat||'餐飲')===c?' active':''}" data-ledgernewcat="${c}" style="font-size:10px;padding:2px 8px">${LEDGER_ICONS[c]} ${c}</button>`).join('')}
   </div>
-  <button class="ledger-add-btn" id="ledgerAddBtn" style="width:100%;margin-top:8px">＋ 新增</button>
-  `;
+  <button class="ledger-add-btn" id="ledgerAddBtn" style="width:100%;margin-top:8px">＋ 新增</button>`;
 
   body.innerHTML=html;
 
-  // bind events
-  body.querySelector('#ledgerBudgetInput')?.addEventListener('change',e=>{
+  // ── bind events ──
+  // budget TWD input
+  body.querySelector('#ledgerBudgetTwd')?.addEventListener('change',e=>{
     const v=e.target.value===''?null:Number(e.target.value);
-    getLedger().budget=v; scheduleSave(); renderLedger();
+    const ledger=getLedger(); ledger.budgetTwd=v;
+    if(v!=null){ledger.budgetJpy=Math.round(v/rate);const el=body.querySelector('#ledgerBudgetJpy');if(el)el.value=ledger.budgetJpy;}
+    scheduleSave(); renderLedger();
   });
-  body.querySelectorAll('[data-ledgercat]').forEach(btn=>btn.addEventListener('click',()=>{
-    getLedger().activeCat=btn.dataset.ledgercat; renderLedger();
-  }));
-  body.querySelectorAll('[data-ledgernewcat]').forEach(btn=>btn.addEventListener('click',()=>{
-    getLedger().newCat=btn.dataset.ledgernewcat; renderLedger();
-  }));
+  // budget JPY input
+  body.querySelector('#ledgerBudgetJpy')?.addEventListener('change',e=>{
+    const v=e.target.value===''?null:Number(e.target.value);
+    const ledger=getLedger(); ledger.budgetJpy=v;
+    if(v!=null){ledger.budgetTwd=Math.round(v*rate);const el=body.querySelector('#ledgerBudgetTwd');if(el)el.value=ledger.budgetTwd;}
+    scheduleSave(); renderLedger();
+  });
+  body.querySelectorAll('[data-ledgercat]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().activeCat=btn.dataset.ledgercat;renderLedger();}));
+  body.querySelectorAll('[data-ledgernewcat]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().newCat=btn.dataset.ledgernewcat;renderLedger();}));
   body.querySelectorAll('[data-ledgername]').forEach(input=>input.addEventListener('change',()=>{
     const e=getLedger().entries.find(x=>x.id===input.dataset.ledgername);
     if(e){e.name=input.value;scheduleSave();}
   }));
-  body.querySelectorAll('[data-ledgeramount]').forEach(input=>input.addEventListener('change',()=>{
-    const e=getLedger().entries.find(x=>x.id===input.dataset.ledgeramount);
-    if(e){e.amount=input.value===''?null:Number(input.value);scheduleSave();renderLedger();}
+  // entry JPY change → auto-fill TWD
+  body.querySelectorAll('[data-ledgerjpy]').forEach(input=>input.addEventListener('change',()=>{
+    const e=getLedger().entries.find(x=>x.id===input.dataset.ledgerjpy);
+    if(!e)return;
+    e.amount=input.value===''?null:Number(input.value);
+    if(e.amount!=null){e.amountTwd=Math.round(e.amount*rate);}
+    scheduleSave();renderLedger();
+  }));
+  // entry TWD change → auto-fill JPY
+  body.querySelectorAll('[data-ledgertwd]').forEach(input=>input.addEventListener('change',()=>{
+    const e=getLedger().entries.find(x=>x.id===input.dataset.ledgertwd);
+    if(!e)return;
+    e.amountTwd=input.value===''?null:Number(input.value);
+    if(e.amountTwd!=null){e.amount=Math.round(e.amountTwd/rate);}
+    scheduleSave();renderLedger();
   }));
   body.querySelectorAll('[data-ledgerdel]').forEach(btn=>btn.addEventListener('click',()=>{
     const ledger=getLedger();
     ledger.entries=ledger.entries.filter(e=>e.id!==btn.dataset.ledgerdel);
-    scheduleSave(); renderLedger();
+    scheduleSave();renderLedger();
   }));
+  // add JPY → auto-fill TWD
+  body.querySelector('#ledgerAddJpy')?.addEventListener('input',()=>{
+    const v=body.querySelector('#ledgerAddJpy').value;
+    if(v) body.querySelector('#ledgerAddTwd').value=Math.round(Number(v)*rate);
+    else body.querySelector('#ledgerAddTwd').value='';
+  });
+  // add TWD → auto-fill JPY
+  body.querySelector('#ledgerAddTwd')?.addEventListener('input',()=>{
+    const v=body.querySelector('#ledgerAddTwd').value;
+    if(v) body.querySelector('#ledgerAddJpy').value=Math.round(Number(v)/rate);
+    else body.querySelector('#ledgerAddJpy').value='';
+  });
   body.querySelector('#ledgerAddBtn')?.addEventListener('click',()=>{
-    const name=document.getElementById('ledgerAddName')?.value.trim();
-    const amount=document.getElementById('ledgerAddAmount')?.value;
-    if(!name&&!amount)return;
+    const name=body.querySelector('#ledgerAddName')?.value.trim();
+    const jpy=body.querySelector('#ledgerAddJpy')?.value;
+    const twd=body.querySelector('#ledgerAddTwd')?.value;
+    if(!name&&!jpy&&!twd)return;
     const ledger=getLedger();
     ledger.entries.push({
       id:'le'+Date.now(),
       name:name||'支出',
-      amount:amount?Number(amount):null,
+      amount:jpy?Number(jpy):null,
+      amountTwd:twd?Number(twd):null,
       cat:ledger.newCat||'餐飲',
     });
-    scheduleSave(); renderLedger();
+    scheduleSave();renderLedger();
   });
-  body.querySelector('#ledgerAddName')?.addEventListener('keydown',e=>{
-    if(e.key==='Enter') body.querySelector('#ledgerAddBtn')?.click();
-  });
-  body.querySelector('#ledgerAddAmount')?.addEventListener('keydown',e=>{
-    if(e.key==='Enter') body.querySelector('#ledgerAddBtn')?.click();
+  ['#ledgerAddName','#ledgerAddJpy','#ledgerAddTwd'].forEach(sel=>{
+    body.querySelector(sel)?.addEventListener('keydown',e=>{if(e.key==='Enter')body.querySelector('#ledgerAddBtn')?.click();});
   });
 }
 
@@ -1427,4 +1497,3 @@ init();
 </script>
 </body>
 </html>
-
