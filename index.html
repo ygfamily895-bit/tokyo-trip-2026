@@ -318,6 +318,49 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .ledger-cat-tab{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;border:1.5px solid transparent;cursor:pointer;background:#f0ede8;color:var(--muted);font-family:'Noto Sans TC',sans-serif;transition:all .15s}
 .ledger-cat-tab.active{background:#7c3aed;color:#fff}
 .ledger-empty{text-align:center;padding:20px;font-size:12px;color:var(--muted)}
+
+/* ── IMAGE FIELD ── */
+.stop-field-img-wrap{padding:8px 10px}
+.stop-field-img-preview{
+  position:relative;display:inline-block;margin-bottom:6px;
+}
+.stop-field-img-preview img{
+  max-width:100%;max-height:200px;border-radius:8px;
+  cursor:pointer;display:block;object-fit:cover;
+  transition:opacity .2s;
+}
+.stop-field-img-preview img:hover{opacity:.85}
+.stop-field-img-del-btn{
+  position:absolute;top:4px;right:4px;
+  background:rgba(0,0,0,.55);color:#fff;border:none;
+  border-radius:50%;width:22px;height:22px;cursor:pointer;
+  font-size:11px;display:flex;align-items:center;justify-content:center;
+}
+.stop-field-img-add{display:flex;flex-direction:column;gap:6px}
+.stop-field-img-url{
+  font-size:12px;color:var(--text);border:1.5px solid var(--border);
+  border-radius:7px;padding:6px 9px;outline:none;width:100%;
+  font-family:'Noto Sans TC',sans-serif;background:var(--bg);
+}
+.stop-field-img-url:focus{border-color:var(--accent2)}
+.stop-field-img-upload{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 12px;border-radius:7px;border:1.5px dashed #d0cdc5;
+  color:var(--muted);font-size:11px;cursor:pointer;
+  font-family:'Noto Sans TC',sans-serif;transition:all .15s;
+  background:none;
+}
+.stop-field-img-upload:hover{border-color:var(--accent2);color:var(--accent2);background:#eaf0fe}
+
+/* ── LIGHTBOX ── */
+.lightbox{
+  position:fixed;inset:0;background:rgba(0,0,0,.88);
+  z-index:9000;display:flex;align-items:center;justify-content:center;
+  cursor:zoom-out;
+}
+.lightbox img{max-width:92vw;max-height:88vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 48px rgba(0,0,0,.5)}
+.lightbox-close{position:fixed;top:18px;right:22px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:50%;width:36px;height:36px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lightbox-close:hover{background:rgba(255,255,255,.3)}
 /* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;background:#1e1d1a;color:#fff;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
 .toast.show{transform:translateY(0);opacity:1}
@@ -503,6 +546,7 @@ const TEMPLATES = [
   {icon:'🚆',name:'交通',fields:[{label:'路線',body:''},{label:'票價',body:''}]},
   {icon:'🏨',name:'住宿',fields:[{label:'Check-in',body:''},{label:'地址',body:''}]},
   {icon:'🎡',name:'景點',fields:[{label:'開放時間',body:''},{label:'票價',body:''}]},
+  {icon:'📷',name:'圖片',fields:[],type:'image'},
   {icon:'📝',name:'空白',fields:[]},
 ];
 const DEFAULT_PACK = {sections:[
@@ -839,6 +883,30 @@ function renderStop(s, dayId, idx, allStops) {
 }
 
 function renderStopField(f, stopId, dayId) {
+  if (f.type === 'image') {
+    const imgs = f.images || [];
+    const imgHtml = imgs.map((src,i) => `
+      <div class="stop-field-img-preview">
+        <img src="${escA(src)}" alt="圖片" onclick="openLightbox('${escA(src)}')">
+        <button class="stop-field-img-del-btn" data-sfimgdel="${i}" data-sfid="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">✕</button>
+      </div>`).join('');
+    return `<div class="stop-field" data-sfid="${f.id}">
+      <div class="stop-field-header">
+        <input class="stop-field-label" value="${escA(f.label||'圖片')}" data-sfieldlabel="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" placeholder="欄位名稱">
+        <button class="stop-field-del" data-deletesf="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">✕</button>
+      </div>
+      <div class="stop-field-img-wrap">
+        ${imgHtml}
+        <div class="stop-field-img-add">
+          <input class="stop-field-img-url" placeholder="貼上圖片網址…" data-sfimgurl="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">
+          <label class="stop-field-img-upload">
+            📁 上傳本機圖片
+            <input type="file" accept="image/*" style="display:none" data-sfimgfile="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">
+          </label>
+        </div>
+      </div>
+    </div>`;
+  }
   return `<div class="stop-field" data-sfid="${f.id}">
     <div class="stop-field-header">
       <input class="stop-field-label" value="${escA(f.label)}" data-sfieldlabel="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" placeholder="欄位名稱">
@@ -897,6 +965,12 @@ function bindDayEvents(sec, day) {
 
     // delete stop field
     if (t.dataset.deletesf) { const d=DATA.days.find(x=>x.id===t.dataset.dayid); if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s)s.fields=s.fields.filter(f=>f.id!==t.dataset.deletesf);render();scheduleSave();} return; }
+    // delete image from image field
+    if (t.dataset.sfimgdel !== undefined) {
+      const d=DATA.days.find(x=>x.id===t.dataset.dayid);
+      if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s){const f=s.fields.find(x=>x.id===t.dataset.sfid);if(f&&f.images){f.images.splice(Number(t.dataset.sfimgdel),1);render();scheduleSave();}}}
+      return;
+    }
 
     // day emoji
     if (t.dataset.dayemoji) { openEmojiPicker({type:'day',id:t.dataset.dayemoji},t); return; }
@@ -938,6 +1012,25 @@ function bindDayEvents(sec, day) {
     if (t.dataset.fieldlabel) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d&&d.fields){const f=d.fields.find(x=>x.id===t.dataset.fieldlabel);if(f){f.label=t.value;scheduleSave();}}return; }
     // day field body
     if (t.dataset.fieldbody) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d&&d.fields){const f=d.fields.find(x=>x.id===t.dataset.fieldbody);if(f){f.body=t.value;scheduleSave();}}return; }
+    // image URL input
+    if (t.dataset.sfimgurl) {
+      const url=t.value.trim(); if(!url)return;
+      const d=DATA.days.find(x=>x.id===t.dataset.dayid);
+      if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s){const f=s.fields.find(x=>x.id===t.dataset.sfimgurl);if(f){if(!f.images)f.images=[];f.images.push(url);t.value='';render();scheduleSave();}}}
+      return;
+    }
+    // image file upload
+    if (t.dataset.sfimgfile && t.files && t.files[0]) {
+      const file=t.files[0];
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        const d=DATA.days.find(x=>x.id===t.dataset.dayid);
+        if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s){const f=s.fields.find(x=>x.id===t.dataset.sfimgfile);if(f){if(!f.images)f.images=[];f.images.push(ev.target.result);render();scheduleSave();}}}
+      };
+      reader.readAsDataURL(file);
+      t.value='';
+      return;
+    }
   });
 
   sec.addEventListener('input', e => {
@@ -1111,9 +1204,22 @@ function applyTemplateToStop(dayId,stopId,t){
   const s=d.stops.find(x=>x.id===stopId); if(!s)return;
   if(!s.fields)s.fields=[];
   const existing=s.fields.map(f=>f.label);
-  t.fields.forEach((f,i)=>{if(!existing.includes(f.label))s.fields.push({id:'sf'+(Date.now()+i),label:f.label,body:f.body});});
+  if(t.type==='image'){
+    s.fields.push({id:'sf'+Date.now(),label:'圖片',type:'image',images:[]});
+  } else {
+    t.fields.forEach((f,i)=>{if(!existing.includes(f.label))s.fields.push({id:'sf'+(Date.now()+i),label:f.label,body:f.body});});
+  }
   render(); scheduleSave(); toast(`已套用「${t.name}」範本`);
 }
+
+// ── LIGHTBOX ──
+window.openLightbox = (src) => {
+  const lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.innerHTML = `<button class="lightbox-close">✕</button><img src="${src}" alt="">`;
+  lb.addEventListener('click', e => { if(e.target===lb||e.target.classList.contains('lightbox-close')) lb.remove(); });
+  document.body.appendChild(lb);
+};
 document.addEventListener('click',()=>closeAllStopTpls());
 
 // ── EMOJI PICKER ──
