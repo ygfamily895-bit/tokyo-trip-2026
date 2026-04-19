@@ -1385,97 +1385,172 @@ const LEDGER_CATS = ['全部','餐飲','交通','購物','票券','住宿','其�
 const LEDGER_ICONS = {'餐飲':'🍜','交通':'🚆','購物':'🛍️','票券':'🎫','住宿':'🏨','其他':'📝'};
 
 function getLedger(){
-  if(!DATA.ledger) DATA.ledger={budget:null,entries:[]};
+  if(!DATA.ledger) DATA.ledger={days:{},activeDayIdx:0,activeCat:'全部',newCat:'餐飲'};
   return DATA.ledger;
+}
+
+// Get day ledger data (budget + entries) for a given day index
+function getDayLedger(idx){
+  const ledger=getLedger();
+  if(!ledger.days) ledger.days={};
+  if(!ledger.days[idx]) ledger.days[idx]={budgetJpy:null,budgetTwd:null,entries:[]};
+  return ledger.days[idx];
+}
+
+// Calculate carry-over for each day
+// Returns array of {spentJpy, spentTwd, carryJpy, carryTwd, budgetJpy, budgetTwd, effectiveBudgetJpy, effectiveBudgetTwd}
+function calcDailyLedger(){
+  const rate=getLiveRate();
+  const totalDays=DATA.days.length;
+  const results=[];
+  let carryJpy=0, carryTwd=0;
+  for(let i=0;i<totalDays;i++){
+    const dl=getDayLedger(i);
+    const entries=dl.entries||[];
+    const spentJpy=entries.reduce((s,e)=>s+(e.amount!=null?Number(e.amount):(e.amountTwd!=null?Math.round(Number(e.amountTwd)/rate):0)),0);
+    const spentTwd=entries.reduce((s,e)=>s+(e.amountTwd!=null?Number(e.amountTwd):(e.amount!=null?Math.round(Number(e.amount)*rate):0)),0);
+    const baseJpy=dl.budgetJpy!=null?Number(dl.budgetJpy):null;
+    const baseTwd=dl.budgetTwd!=null?Number(dl.budgetTwd):null;
+    // effective budget = base + carry from previous day
+    const effJpy=baseJpy!=null?baseJpy+carryJpy:null;
+    const effTwd=baseTwd!=null?baseTwd+carryTwd:null;
+    // new carry = effective budget - spent (positive=leftover, negative=overspent)
+    const newCarryJpy=effJpy!=null?effJpy-spentJpy:0;
+    const newCarryTwd=effTwd!=null?effTwd-spentTwd:0;
+    results.push({
+      spentJpy,spentTwd,carryJpy,carryTwd,
+      budgetJpy:baseJpy,budgetTwd:baseTwd,
+      effJpy,effTwd,newCarryJpy,newCarryTwd,
+    });
+    carryJpy=newCarryJpy;
+    carryTwd=newCarryTwd;
+  }
+  return results;
 }
 
 function renderLedger(){
   const body=document.getElementById('ledgerBody'); if(!body)return;
   const ledger=getLedger();
   const rate=getLiveRate();
-  const entries=ledger.entries||[];
-
-  // total in TWD (convert JPY entries if needed)
-  const totalTwd=entries.reduce((s,e)=>{
-    if(e.amountTwd!=null) return s+Number(e.amountTwd);
-    if(e.amount!=null) return s+Math.round(Number(e.amount)*rate);
-    return s;
-  },0);
-  const totalJpy=entries.reduce((s,e)=>{
-    if(e.amount!=null) return s+Number(e.amount);
-    if(e.amountTwd!=null) return s+Math.round(Number(e.amountTwd)/rate);
-    return s;
-  },0);
-
-  const budgetTwd=ledger.budgetTwd!=null?Number(ledger.budgetTwd):null;
-  const budgetJpy=ledger.budgetJpy!=null?Number(ledger.budgetJpy):null;
-  // use TWD budget as primary; if only JPY set, convert
-  const budgetBase=budgetTwd!=null?budgetTwd:(budgetJpy!=null?Math.round(budgetJpy*rate):null);
-  const remaining=budgetBase!=null?budgetBase-totalTwd:null;
-  const pct=budgetBase>0?Math.min(100,Math.round(totalTwd/budgetBase*100)):0;
-  const over=budgetBase!=null&&totalTwd>budgetBase;
+  const activeDayIdx=ledger.activeDayIdx||0;
   const activeCat=ledger.activeCat||'全部';
+  const dl=getDayLedger(activeDayIdx);
+  const dailyCalc=calcDailyLedger();
+  const dc=dailyCalc[activeDayIdx]||{};
 
-  let html=`
+  // ── Day selector tabs ──
+  let dayTabsHtml='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">';
+  DATA.days.forEach((day,i)=>{
+    const d=dailyCalc[i]||{};
+    const hasBudget=getDayLedger(i).budgetJpy!=null||getDayLedger(i).budgetTwd!=null;
+    const over=(d.effJpy!=null&&d.newCarryJpy<0)||(d.effTwd!=null&&d.newCarryTwd<0);
+    const color=over?'#fdecea':hasBudget?'#f0f7ff':'#f0ede8';
+    const textColor=over?'#c84b31':hasBudget?'#2563eb':'#888';
+    const active=i===activeDayIdx;
+    dayTabsHtml+=`<button data-ledgerdayidx="${i}" style="
+      padding:3px 9px;border-radius:16px;border:1.5px solid ${active?'#7c3aed':'transparent'};
+      background:${active?'#7c3aed':color};color:${active?'#fff':textColor};
+      font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+      white-space:nowrap;transition:all .15s;
+    ">${day.num}</button>`;
+  });
+  dayTabsHtml+='</div>';
+
+  // ── Hero card for active day ──
+  const dayLabel=DATA.days[activeDayIdx]?.num||('D'+(activeDayIdx+1));
+  const dayTitle=DATA.days[activeDayIdx]?.title||'';
+
+  // carry display
+  const carryJpyDisplay=dc.carryJpy||0;
+  const carryTwdDisplay=dc.carryTwd||0;
+  const carryJpyStr=carryJpyDisplay>0?`+¥${carryJpyDisplay.toLocaleString()}`:carryJpyDisplay<0?`-¥${Math.abs(carryJpyDisplay).toLocaleString()}`:'';
+  const carryTwdStr=carryTwdDisplay>0?`+NT$${carryTwdDisplay.toLocaleString()}`:carryTwdDisplay<0?`-NT$${Math.abs(carryTwdDisplay).toLocaleString()}`:'';
+
+  const overJpy=dc.effJpy!=null&&dc.newCarryJpy<0;
+  const overTwd=dc.effTwd!=null&&dc.newCarryTwd<0;
+
+  // progress bars
+  const pctJpy=dc.effJpy>0?Math.min(100,Math.round(dc.spentJpy/dc.effJpy*100)):0;
+  const pctTwd=dc.effTwd>0?Math.min(100,Math.round(dc.spentTwd/dc.effTwd*100)):0;
+
+  let heroHtml=`
   <div class="ledger-hero">
-    <div class="ledger-hero-label">旅行總預算</div>
-    <div style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
       <div>
-        <div style="font-size:10px;opacity:.7;margin-bottom:2px">台幣 NT$</div>
-        <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:5px">
-          <span style="font-size:11px;opacity:.7">NT$</span>
-          <input class="ledger-budget-input" id="ledgerBudgetTwd" type="number" placeholder="台幣預算"
-            value="${budgetTwd!=null?budgetTwd:''}" style="width:100px">
-        </div>
+        <div style="font-size:18px;font-weight:700">${dayLabel}</div>
+        <div style="font-size:11px;opacity:.75">${dayTitle}</div>
       </div>
-      <div style="display:flex;align-items:flex-end;padding-bottom:8px;opacity:.6;font-size:18px">⇄</div>
-      <div>
-        <div style="font-size:10px;opacity:.7;margin-bottom:2px">日幣 ¥</div>
-        <div style="background:rgba(255,255,255,.15);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:5px">
-          <span style="font-size:11px;opacity:.7">¥</span>
-          <input class="ledger-budget-input" id="ledgerBudgetJpy" type="number" placeholder="日幣預算"
-            value="${budgetJpy!=null?budgetJpy:''}" style="width:100px">
-        </div>
+      ${(carryJpyStr||carryTwdStr)?`<div style="text-align:right;font-size:11px;opacity:.8">
+        ${carryJpyStr?`<div>前日結轉 <span style="font-weight:700">${carryJpyStr} JPY</span></div>`:''}
+        ${carryTwdStr?`<div>前日結轉 <span style="font-weight:700">${carryTwdStr} TWD</span></div>`:''}
+      </div>`:''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:10px">
+        <div style="font-size:10px;opacity:.7;margin-bottom:4px">日幣預算 ¥</div>
+        <input class="ledger-budget-input" id="ldBudgetJpy" type="number" placeholder="未設定"
+          value="${dl.budgetJpy!=null?dl.budgetJpy:''}" style="font-size:15px;width:100%">
+        ${dc.effJpy!=null?`
+        <div style="margin-top:8px">
+          <div class="ledger-bar-wrap"><div class="ledger-bar${overJpy?' over':''}" style="width:${pctJpy}%"></div></div>
+          <div style="font-size:10px;opacity:.85;margin-top:3px">
+            花 ¥${dc.spentJpy.toLocaleString()} / 有效 ¥${dc.effJpy.toLocaleString()}
+          </div>
+          <div style="font-size:11px;font-weight:700;margin-top:2px;color:${overJpy?'#f87171':'#a5f3c0'}">
+            ${overJpy?'超支 ¥'+Math.abs(dc.newCarryJpy).toLocaleString():'剩 ¥'+dc.newCarryJpy.toLocaleString()}
+          </div>
+        </div>`:''}
+      </div>
+      <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:10px">
+        <div style="font-size:10px;opacity:.7;margin-bottom:4px">台幣預算 NT$</div>
+        <input class="ledger-budget-input" id="ldBudgetTwd" type="number" placeholder="未設定"
+          value="${dl.budgetTwd!=null?dl.budgetTwd:''}" style="font-size:15px;width:100%">
+        ${dc.effTwd!=null?`
+        <div style="margin-top:8px">
+          <div class="ledger-bar-wrap"><div class="ledger-bar${overTwd?' over':''}" style="width:${pctTwd}%"></div></div>
+          <div style="font-size:10px;opacity:.85;margin-top:3px">
+            花 NT$${dc.spentTwd.toLocaleString()} / 有效 NT$${dc.effTwd.toLocaleString()}
+          </div>
+          <div style="font-size:11px;font-weight:700;margin-top:2px;color:${overTwd?'#f87171':'#a5f3c0'}">
+            ${overTwd?'超支 NT$'+Math.abs(dc.newCarryTwd).toLocaleString():'剩 NT$'+dc.newCarryTwd.toLocaleString()}
+          </div>
+        </div>`:''}
       </div>
     </div>
-    ${budgetBase!=null?`
-    <div>
-      <div class="ledger-bar-wrap"><div class="ledger-bar${over?' over':''}" style="width:${pct}%"></div></div>
-      <div class="ledger-stats">
-        <span>已花費 NT$${totalTwd.toLocaleString()} / ¥${totalJpy.toLocaleString()} (${pct}%)</span>
-        <span style="color:${over?'#f87171':'rgba(255,255,255,.9)'}">${over?'超支 NT$'+(totalTwd-budgetBase).toLocaleString():'剩餘 NT$'+remaining.toLocaleString()}</span>
-      </div>
-    </div>`:''}
-  </div>
+  </div>`;
 
-  <div class="ledger-cat-tabs">
+  // ── Category tabs + entries ──
+  const entries=dl.entries||[];
+  const filtered=activeCat==='全部'?entries:entries.filter(e=>e.cat===activeCat);
+
+  let html=dayTabsHtml+heroHtml;
+  html+=`<div class="ledger-cat-tabs">
     ${LEDGER_CATS.map(c=>`<button class="ledger-cat-tab${activeCat===c?' active':''}" data-ledgercat="${c}">${c}</button>`).join('')}
   </div>`;
 
-  const filtered=activeCat==='全部'?entries:entries.filter(e=>e.cat===activeCat);
-
   if(filtered.length===0){
-    html+=`<div class="ledger-empty">還沒有記帳紀錄<br><span style="font-size:11px">在下方新增第一筆支出</span></div>`;
+    html+=`<div class="ledger-empty">今天還沒有記帳紀錄</div>`;
   }else{
     html+=`<div>`;
     filtered.forEach(e=>{
       const eTwd=e.amountTwd!=null?e.amountTwd:(e.amount!=null?Math.round(Number(e.amount)*rate):'');
       const eJpy=e.amount!=null?e.amount:(e.amountTwd!=null?Math.round(Number(e.amountTwd)/rate):'');
-      html+=`<div class="ledger-entry" style="flex-wrap:wrap;gap:6px">
+      html+=`<div class="ledger-entry" style="flex-wrap:wrap;gap:5px">
         <span class="ledger-entry-icon">${LEDGER_ICONS[e.cat]||'📝'}</span>
-        <input class="ledger-entry-name" value="${escA(e.name)}" data-ledgername="${e.id}" placeholder="支出名稱" style="min-width:80px">
+        <input class="ledger-entry-name" value="${escA(e.name)}" data-ledgername="${e.id}" placeholder="支出名稱">
         <div style="display:flex;align-items:center;gap:3px;margin-left:auto">
           <span style="font-size:10px;color:var(--muted)">¥</span>
-          <input class="ledger-entry-amount" type="number" value="${eJpy}" data-ledgerjpy="${e.id}" placeholder="日幣" style="width:70px">
+          <input class="ledger-entry-amount" type="number" value="${eJpy}" data-ledgerjpy="${e.id}" placeholder="日幣" style="width:66px">
           <span style="color:#ccc;font-size:11px">⇄</span>
-          <input class="ledger-entry-amount" type="number" value="${eTwd}" data-ledgertwd="${e.id}" placeholder="台幣" style="width:70px;color:#7c3aed">
+          <input class="ledger-entry-amount" type="number" value="${eTwd}" data-ledgertwd="${e.id}" placeholder="台幣" style="width:66px;color:#7c3aed">
           <span class="ledger-entry-curr">TWD</span>
         </div>
-        <button class="ledger-entry-del" data-ledgerdel="${e.id}" style="margin-left:0">✕</button>
+        <button class="ledger-entry-del" data-ledgerdel="${e.id}">✕</button>
       </div>`;
     });
-    const subTwd=filtered.reduce((s,e)=>s+(e.amountTwd!=null?Number(e.amountTwd):(e.amount!=null?Math.round(Number(e.amount)*rate):0)),0);
     const subJpy=filtered.reduce((s,e)=>s+(e.amount!=null?Number(e.amount):(e.amountTwd!=null?Math.round(Number(e.amountTwd)/rate):0)),0);
+    const subTwd=filtered.reduce((s,e)=>s+(e.amountTwd!=null?Number(e.amountTwd):(e.amount!=null?Math.round(Number(e.amount)*rate):0)),0);
     html+=`<div style="text-align:right;font-size:12px;font-weight:700;color:#7c3aed;padding:8px 4px 0">
       小計 ¥${subJpy.toLocaleString()} / NT$${subTwd.toLocaleString()}
     </div></div>`;
@@ -1503,54 +1578,47 @@ function renderLedger(){
   body.innerHTML=html;
 
   // ── bind events ──
-  // budget TWD input
-  body.querySelector('#ledgerBudgetTwd')?.addEventListener('change',e=>{
+  body.querySelectorAll('[data-ledgerdayidx]').forEach(btn=>btn.addEventListener('click',()=>{
+    getLedger().activeDayIdx=Number(btn.dataset.ledgerdayidx); renderLedger();
+  }));
+  body.querySelector('#ldBudgetJpy')?.addEventListener('change',e=>{
     const v=e.target.value===''?null:Number(e.target.value);
-    const ledger=getLedger(); ledger.budgetTwd=v;
-    if(v!=null){ledger.budgetJpy=Math.round(v/rate);const el=body.querySelector('#ledgerBudgetJpy');if(el)el.value=ledger.budgetJpy;}
-    scheduleSave(); renderLedger();
+    getDayLedger(activeDayIdx).budgetJpy=v; scheduleSave(); renderLedger();
   });
-  // budget JPY input
-  body.querySelector('#ledgerBudgetJpy')?.addEventListener('change',e=>{
+  body.querySelector('#ldBudgetTwd')?.addEventListener('change',e=>{
     const v=e.target.value===''?null:Number(e.target.value);
-    const ledger=getLedger(); ledger.budgetJpy=v;
-    if(v!=null){ledger.budgetTwd=Math.round(v*rate);const el=body.querySelector('#ledgerBudgetTwd');if(el)el.value=ledger.budgetTwd;}
-    scheduleSave(); renderLedger();
+    getDayLedger(activeDayIdx).budgetTwd=v; scheduleSave(); renderLedger();
   });
   body.querySelectorAll('[data-ledgercat]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().activeCat=btn.dataset.ledgercat;renderLedger();}));
   body.querySelectorAll('[data-ledgernewcat]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().newCat=btn.dataset.ledgernewcat;renderLedger();}));
   body.querySelectorAll('[data-ledgername]').forEach(input=>input.addEventListener('change',()=>{
-    const e=getLedger().entries.find(x=>x.id===input.dataset.ledgername);
+    const e=getDayLedger(activeDayIdx).entries.find(x=>x.id===input.dataset.ledgername);
     if(e){e.name=input.value;scheduleSave();}
   }));
-  // entry JPY change → auto-fill TWD
   body.querySelectorAll('[data-ledgerjpy]').forEach(input=>input.addEventListener('change',()=>{
-    const e=getLedger().entries.find(x=>x.id===input.dataset.ledgerjpy);
-    if(!e)return;
+    const dl=getDayLedger(activeDayIdx);
+    const e=dl.entries.find(x=>x.id===input.dataset.ledgerjpy); if(!e)return;
     e.amount=input.value===''?null:Number(input.value);
-    if(e.amount!=null){e.amountTwd=Math.round(e.amount*rate);}
+    if(e.amount!=null) e.amountTwd=Math.round(e.amount*rate);
     scheduleSave();renderLedger();
   }));
-  // entry TWD change → auto-fill JPY
   body.querySelectorAll('[data-ledgertwd]').forEach(input=>input.addEventListener('change',()=>{
-    const e=getLedger().entries.find(x=>x.id===input.dataset.ledgertwd);
-    if(!e)return;
+    const dl=getDayLedger(activeDayIdx);
+    const e=dl.entries.find(x=>x.id===input.dataset.ledgertwd); if(!e)return;
     e.amountTwd=input.value===''?null:Number(input.value);
-    if(e.amountTwd!=null){e.amount=Math.round(e.amountTwd/rate);}
+    if(e.amountTwd!=null) e.amount=Math.round(e.amountTwd/rate);
     scheduleSave();renderLedger();
   }));
   body.querySelectorAll('[data-ledgerdel]').forEach(btn=>btn.addEventListener('click',()=>{
-    const ledger=getLedger();
-    ledger.entries=ledger.entries.filter(e=>e.id!==btn.dataset.ledgerdel);
+    const dl=getDayLedger(activeDayIdx);
+    dl.entries=dl.entries.filter(e=>e.id!==btn.dataset.ledgerdel);
     scheduleSave();renderLedger();
   }));
-  // add JPY → auto-fill TWD
   body.querySelector('#ledgerAddJpy')?.addEventListener('input',()=>{
     const v=body.querySelector('#ledgerAddJpy').value;
     if(v) body.querySelector('#ledgerAddTwd').value=Math.round(Number(v)*rate);
     else body.querySelector('#ledgerAddTwd').value='';
   });
-  // add TWD → auto-fill JPY
   body.querySelector('#ledgerAddTwd')?.addEventListener('input',()=>{
     const v=body.querySelector('#ledgerAddTwd').value;
     if(v) body.querySelector('#ledgerAddJpy').value=Math.round(Number(v)/rate);
@@ -1561,13 +1629,13 @@ function renderLedger(){
     const jpy=body.querySelector('#ledgerAddJpy')?.value;
     const twd=body.querySelector('#ledgerAddTwd')?.value;
     if(!name&&!jpy&&!twd)return;
-    const ledger=getLedger();
-    ledger.entries.push({
-      id:'le'+Date.now(),
-      name:name||'支出',
+    const dl=getDayLedger(activeDayIdx);
+    if(!dl.entries) dl.entries=[];
+    dl.entries.push({
+      id:'le'+Date.now(), name:name||'支出',
       amount:jpy?Number(jpy):null,
       amountTwd:twd?Number(twd):null,
-      cat:ledger.newCat||'餐飲',
+      cat:getLedger().newCat||'餐飲',
     });
     scheduleSave();renderLedger();
   });
@@ -1575,7 +1643,6 @@ function renderLedger(){
     body.querySelector(sel)?.addEventListener('keydown',e=>{if(e.key==='Enter')body.querySelector('#ledgerAddBtn')?.click();});
   });
 }
-
 document.getElementById('ledgerBtn').addEventListener('click',()=>togglePanel('ledgerPanel'));
 document.getElementById('closeLedgerBtn').addEventListener('click',()=>closeAllPanels());
 
