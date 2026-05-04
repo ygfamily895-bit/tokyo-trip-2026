@@ -211,9 +211,31 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 .add-day-btn:hover{border-color:var(--accent);color:var(--accent);background:#fdf5f3}
 
 /* EMOJI PICKER */
-.emoji-picker{position:absolute;z-index:200;left:0;top:32px;background:var(--card);border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.15);padding:8px;display:grid;grid-template-columns:repeat(6,1fr);gap:3px;width:196px}
-.emoji-picker span{cursor:pointer;font-size:17px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px}
-.emoji-picker span:hover{background:#f0ede8}
+.emoji-picker{
+  position:fixed;z-index:9999;background:var(--card);
+  border:1px solid var(--border);border-radius:12px;
+  box-shadow:0 8px 28px rgba(0,0,0,.18);padding:12px;
+  width:220px;
+}
+.emoji-picker-title{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase}
+.emoji-picker-input-row{display:flex;gap:6px;align-items:center;margin-bottom:10px}
+.emoji-picker-input{
+  flex:1;font-size:24px;text-align:center;padding:6px;
+  border:1.5px solid var(--border);border-radius:8px;
+  outline:none;font-family:'Noto Sans TC',sans-serif;
+  background:var(--bg);
+}
+.emoji-picker-input:focus{border-color:var(--accent2)}
+.emoji-picker-confirm{
+  padding:7px 12px;background:var(--accent2);color:#fff;
+  border:none;border-radius:8px;cursor:pointer;font-size:12px;
+  font-weight:700;font-family:'Noto Sans TC',sans-serif;white-space:nowrap;
+}
+.emoji-picker-confirm:hover{background:#2a4a7c}
+.emoji-picker-divider{font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:700}
+.emoji-picker-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}
+.emoji-picker-grid span{cursor:pointer;font-size:17px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:5px}
+.emoji-picker-grid span:hover{background:#f0ede8}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:999;backdrop-filter:blur(2px)}
@@ -1222,6 +1244,9 @@ function applyTemplateToStop(dayId,stopId,t){
   const existing=s.fields.map(f=>f.label);
   if(t.type==='image'){
     s.fields.push({id:'sf'+Date.now(),label:'圖片',type:'image',images:[]});
+  } else if(t.fields.length===0){
+    // blank field
+    s.fields.push({id:'sf'+Date.now(),label:'',body:''});
   } else {
     t.fields.forEach((f,i)=>{if(!existing.includes(f.label))s.fields.push({id:'sf'+(Date.now()+i),label:f.label,body:f.body});});
   }
@@ -1241,17 +1266,73 @@ document.addEventListener('click',()=>closeAllStopTpls());
 // ── EMOJI PICKER ──
 function openEmojiPicker(target, anchor) {
   closeAllPickers();
-  emojiTarget=target;
-  const picker=document.createElement('div');
-  picker.className='emoji-picker';
-  EMOJIS.forEach(em=>{
-    const sp=document.createElement('span');
-    sp.textContent=em;
-    sp.addEventListener('click',ev=>{ev.stopPropagation();selectEmoji(em);});
-    picker.appendChild(sp);
+  emojiTarget = target;
+  const picker = document.createElement('div');
+  picker.className = 'emoji-picker';
+  picker.id = '__emojiPicker';
+  // Position based on anchor
+  const rect = anchor.getBoundingClientRect();
+  const left = Math.min(rect.left, window.innerWidth - 230);
+  const top = rect.bottom + 6;
+  picker.style.cssText = `left:${left}px;top:${top}px`;
+
+  // Get current emoji
+  let curEmoji = '';
+  if (target.type === 'day') {
+    const d = DATA.days.find(x => x.id === target.id);
+    curEmoji = d ? d.emoji : '';
+  } else {
+    const d = DATA.days.find(x => x.id === target.dayId);
+    const s = d ? d.stops.find(x => x.id === target.stopId) : null;
+    curEmoji = s ? s.icon : '';
+  }
+
+  picker.innerHTML = `
+    <div class="emoji-picker-title">更換圖示</div>
+    <div class="emoji-picker-input-row">
+      <input class="emoji-picker-input" id="emojiCustomInput" value="${curEmoji}" maxlength="2" placeholder="輸入 emoji">
+      <button class="emoji-picker-confirm" id="emojiConfirmBtn">確認</button>
+    </div>
+    <div class="emoji-picker-divider">或選擇常用</div>
+    <div class="emoji-picker-grid" id="emojiGrid"></div>
+  `;
+  document.body.appendChild(picker);
+
+  // Fill grid
+  const grid = document.getElementById('emojiGrid');
+  EMOJIS.forEach(em => {
+    const sp = document.createElement('span');
+    sp.textContent = em;
+    sp.title = em;
+    sp.addEventListener('click', ev => {
+      ev.stopPropagation();
+      document.getElementById('emojiCustomInput').value = em;
+    });
+    grid.appendChild(sp);
   });
-  anchor.style.position='relative';
-  anchor.appendChild(picker);
+
+  // Confirm button
+  document.getElementById('emojiConfirmBtn').addEventListener('click', ev => {
+    ev.stopPropagation();
+    const val = document.getElementById('emojiCustomInput').value.trim();
+    if (val) selectEmoji(val);
+    else closeAllPickers();
+  });
+
+  // Enter key confirm
+  document.getElementById('emojiCustomInput').addEventListener('keydown', ev => {
+    if (ev.key === 'Enter') { ev.stopPropagation(); document.getElementById('emojiConfirmBtn').click(); }
+    ev.stopPropagation();
+  });
+
+  // Focus input
+  setTimeout(() => {
+    const inp = document.getElementById('emojiCustomInput');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 50);
+
+  // Prevent picker click from closing
+  picker.addEventListener('click', ev => ev.stopPropagation());
 }
 function selectEmoji(em){
   if(!emojiTarget)return;
