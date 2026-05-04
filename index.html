@@ -967,7 +967,7 @@ function bindDayEvents(sec, day) {
     // collapse
     const collapseId = t.dataset.collapse || t.closest('[data-collapse]')?.dataset.collapse;
     const headerEl = t.closest('.day-header');
-    if (headerEl && !t.closest('input,select,button,textarea,a,[contenteditable]')) {
+    if (headerEl && !t.closest('input,select,button,textarea,a,[contenteditable],[data-dayemoji],[data-stopemoji]')) {
       const card = headerEl.closest('.day-card');
       if (card) card.classList.toggle('collapsed');
       return;
@@ -1011,10 +1011,12 @@ function bindDayEvents(sec, day) {
     }
 
     // day emoji
-    if (t.dataset.dayemoji) { openEmojiPicker({type:'day',id:t.dataset.dayemoji},t); return; }
+    const dayEmojiEl = t.closest('[data-dayemoji]');
+    if (dayEmojiEl) { e.stopPropagation(); openEmojiPicker({type:'day',id:dayEmojiEl.dataset.dayemoji},dayEmojiEl); return; }
 
     // stop emoji
-    if (t.dataset.stopemoji) { openEmojiPicker({type:'stop',stopId:t.dataset.stopemoji,dayId:t.dataset.dayid},t); return; }
+    const stopEmojiEl = t.closest('[data-stopemoji]');
+    if (stopEmojiEl) { e.stopPropagation(); openEmojiPicker({type:'stop',stopId:stopEmojiEl.dataset.stopemoji,dayId:stopEmojiEl.dataset.dayid},stopEmojiEl); return; }
 
     // open template dropdown
     if (t.dataset.opentpl) { toggleStopTpl(t.dataset.opentpl, t.dataset.dayid, e); return; }
@@ -1029,7 +1031,15 @@ function bindDayEvents(sec, day) {
   sec.addEventListener('change', e => {
     const t = e.target;
     // day title / date
-    if (t.dataset.field && t.dataset.dayid) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d){d[t.dataset.field]=t.value;scheduleSave();}return; }
+    if (t.dataset.field && t.dataset.dayid) {
+      const d=DATA.days.find(x=>x.id===t.dataset.dayid);
+      if(d){
+        d[t.dataset.field]=t.value;
+        if(t.dataset.field==='date') sortDaysByDate();
+        scheduleSave();
+      }
+      return;
+    }
     // cat select
     if (t.dataset.catselect) { const d=DATA.days.find(x=>x.id===t.dataset.catselect);if(d){d.cat=t.value;sec.querySelector('.day-card').setAttribute('data-cat',t.value);scheduleSave();}return; }
     // stop name
@@ -1768,6 +1778,37 @@ function stopAutoScroll(){ cancelAnimationFrame(autoScrollRAF); autoScrollRAF=nu
 document.addEventListener('dragover',e=>startAutoScroll(e));
 document.addEventListener('dragend',stopAutoScroll);
 document.addEventListener('drop',stopAutoScroll);
+
+
+// ── AUTO SORT BY DATE ──
+function parseJpDate(str) {
+  if (!str) return null;
+  // Handles formats like: 5月8日（五）, 5/8, 2026-05-08, May 8
+  const m1 = str.match(/(\d+)月(\d+)日/);
+  if (m1) return parseInt(m1[1]) * 100 + parseInt(m1[2]);
+  const m2 = str.match(/(\d+)[\/\-](\d+)/);
+  if (m2) return parseInt(m2[1]) * 100 + parseInt(m2[2]);
+  return null;
+}
+
+function sortDaysByDate() {
+  const hasDates = DATA.days.filter(d => parseJpDate(d.date) !== null);
+  if (hasDates.length < 2) return; // not enough dates to sort
+  const sorted = [...DATA.days].sort((a, b) => {
+    const da = parseJpDate(a.date), db = parseJpDate(b.date);
+    if (da === null && db === null) return 0;
+    if (da === null) return 1;
+    if (db === null) return -1;
+    return da - db;
+  });
+  // Only re-render if order actually changed
+  const changed = sorted.some((d, i) => d.id !== DATA.days[i].id);
+  if (changed) {
+    DATA.days = sorted;
+    render();
+    toast('已依日期重新排序');
+  }
+}
 
 // ── START ──
 init();
