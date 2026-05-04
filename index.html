@@ -886,9 +886,13 @@ function renderStopField(f, stopId, dayId) {
   if (f.type === 'image') {
     const imgs = f.images || [];
     const imgHtml = imgs.map((src,i) => `
-      <div class="stop-field-img-preview">
+      <div class="stop-field-img-preview" style="position:relative;display:inline-block;margin:3px">
         <img src="${escA(src)}" alt="圖片" onclick="openLightbox('${escA(src)}')">
         <button class="stop-field-img-del-btn" data-sfimgdel="${i}" data-sfid="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">✕</button>
+        <div style="position:absolute;bottom:4px;right:4px;display:flex;flex-direction:column;gap:2px">
+          ${i>0?`<button data-sfimgup="${i}" data-sfid="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" style="background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:10px">▲</button>`:''}
+          ${i<imgs.length-1?`<button data-sfimgdown="${i}" data-sfid="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" style="background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:10px">▼</button>`:''}
+        </div>
       </div>`).join('');
     return `<div class="stop-field" data-sfid="${f.id}">
       <div class="stop-field-header">
@@ -969,6 +973,18 @@ function bindDayEvents(sec, day) {
     if (t.dataset.sfimgdel !== undefined) {
       const d=DATA.days.find(x=>x.id===t.dataset.dayid);
       if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s){const f=s.fields.find(x=>x.id===t.dataset.sfid);if(f&&f.images){f.images.splice(Number(t.dataset.sfimgdel),1);render();scheduleSave();}}}
+      return;
+    }
+    // move image up
+    if (t.dataset.sfimgup !== undefined) {
+      const d=DATA.days.find(x=>x.id===t.dataset.dayid);
+      if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s){const f=s.fields.find(x=>x.id===t.dataset.sfid);if(f&&f.images){const i=Number(t.dataset.sfimgup);if(i>0){[f.images[i-1],f.images[i]]=[f.images[i],f.images[i-1]];render();scheduleSave();}}}}
+      return;
+    }
+    // move image down
+    if (t.dataset.sfimgdown !== undefined) {
+      const d=DATA.days.find(x=>x.id===t.dataset.dayid);
+      if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s){const f=s.fields.find(x=>x.id===t.dataset.sfid);if(f&&f.images){const i=Number(t.dataset.sfimgdown);if(i<f.images.length-1){[f.images[i],f.images[i+1]]=[f.images[i+1],f.images[i]];render();scheduleSave();}}}}
       return;
     }
 
@@ -1397,33 +1413,49 @@ function getDayLedger(idx){
   return ledger.days[idx];
 }
 
-// Calculate carry-over for each day
-// Returns array of {spentJpy, spentTwd, carryJpy, carryTwd, budgetJpy, budgetTwd, effectiveBudgetJpy, effectiveBudgetTwd}
+// Calculate carry-over for each day (4 buckets: JPY cash/card, TWD cash/card)
 function calcDailyLedger(){
   const rate=getLiveRate();
   const totalDays=DATA.days.length;
   const results=[];
-  let carryJpy=0, carryTwd=0;
+  let carryJpyCash=0,carryJpyCard=0,carryTwdCash=0,carryTwdCard=0;
   for(let i=0;i<totalDays;i++){
     const dl=getDayLedger(i);
     const entries=dl.entries||[];
-    const spentJpy=entries.reduce((s,e)=>s+(e.amount!=null?Number(e.amount):(e.amountTwd!=null?Math.round(Number(e.amountTwd)/rate):0)),0);
-    const spentTwd=entries.reduce((s,e)=>s+(e.amountTwd!=null?Number(e.amountTwd):(e.amount!=null?Math.round(Number(e.amount)*rate):0)),0);
-    const baseJpy=dl.budgetJpy!=null?Number(dl.budgetJpy):null;
-    const baseTwd=dl.budgetTwd!=null?Number(dl.budgetTwd):null;
-    // effective budget = base + carry from previous day
-    const effJpy=baseJpy!=null?baseJpy+carryJpy:null;
-    const effTwd=baseTwd!=null?baseTwd+carryTwd:null;
-    // new carry = effective budget - spent (positive=leftover, negative=overspent)
-    const newCarryJpy=effJpy!=null?effJpy-spentJpy:0;
-    const newCarryTwd=effTwd!=null?effTwd-spentTwd:0;
+    // spent per bucket
+    const spentJpyCash=entries.filter(e=>e.payType==='cash'&&e.currency==='jpy').reduce((s,e)=>s+Number(e.amount||0),0);
+    const spentJpyCard=entries.filter(e=>e.payType==='card'&&e.currency==='jpy').reduce((s,e)=>s+Number(e.amount||0),0);
+    const spentTwdCash=entries.filter(e=>e.payType==='cash'&&e.currency==='twd').reduce((s,e)=>s+Number(e.amountTwd||0),0);
+    const spentTwdCard=entries.filter(e=>e.payType==='card'&&e.currency==='twd').reduce((s,e)=>s+Number(e.amountTwd||0),0);
+    // budgets
+    const bJpyCash=dl.budgetJpyCash!=null?Number(dl.budgetJpyCash):null;
+    const bJpyCard=dl.budgetJpyCard!=null?Number(dl.budgetJpyCard):null;
+    const bTwdCash=dl.budgetTwdCash!=null?Number(dl.budgetTwdCash):null;
+    const bTwdCard=dl.budgetTwdCard!=null?Number(dl.budgetTwdCard):null;
+    // effective budgets (base + carry)
+    const effJpyCash=bJpyCash!=null?bJpyCash+carryJpyCash:null;
+    const effJpyCard=bJpyCard!=null?bJpyCard+carryJpyCard:null;
+    const effTwdCash=bTwdCash!=null?bTwdCash+carryTwdCash:null;
+    const effTwdCard=bTwdCard!=null?bTwdCard+carryTwdCard:null;
+    // new carries
+    const newCarryJpyCash=effJpyCash!=null?effJpyCash-spentJpyCash:0;
+    const newCarryJpyCard=effJpyCard!=null?effJpyCard-spentJpyCard:0;
+    const newCarryTwdCash=effTwdCash!=null?effTwdCash-spentTwdCash:0;
+    const newCarryTwdCard=effTwdCard!=null?effTwdCard-spentTwdCard:0;
     results.push({
-      spentJpy,spentTwd,carryJpy,carryTwd,
-      budgetJpy:baseJpy,budgetTwd:baseTwd,
-      effJpy,effTwd,newCarryJpy,newCarryTwd,
+      spentJpyCash,spentJpyCard,spentTwdCash,spentTwdCard,
+      effJpyCash,effJpyCard,effTwdCash,effTwdCard,
+      newCarryJpyCash,newCarryJpyCard,newCarryTwdCash,newCarryTwdCard,
+      overJpyCash:effJpyCash!=null&&newCarryJpyCash<0,
+      overJpyCard:effJpyCard!=null&&newCarryJpyCard<0,
+      overTwdCash:effTwdCash!=null&&newCarryTwdCash<0,
+      overTwdCard:effTwdCard!=null&&newCarryTwdCard<0,
+      carryJpyCash,carryJpyCard,carryTwdCash,carryTwdCard,
     });
-    carryJpy=newCarryJpy;
-    carryTwd=newCarryTwd;
+    carryJpyCash=newCarryJpyCash;
+    carryJpyCard=newCarryJpyCard;
+    carryTwdCash=newCarryTwdCash;
+    carryTwdCard=newCarryTwdCard;
   }
   return results;
 }
@@ -1461,17 +1493,11 @@ function renderLedger(){
   const dayTitle=DATA.days[activeDayIdx]?.title||'';
 
   // carry display
-  const carryJpyDisplay=dc.carryJpy||0;
-  const carryTwdDisplay=dc.carryTwd||0;
-  const carryJpyStr=carryJpyDisplay>0?`+¥${carryJpyDisplay.toLocaleString()}`:carryJpyDisplay<0?`-¥${Math.abs(carryJpyDisplay).toLocaleString()}`:'';
-  const carryTwdStr=carryTwdDisplay>0?`+NT$${carryTwdDisplay.toLocaleString()}`:carryTwdDisplay<0?`-NT$${Math.abs(carryTwdDisplay).toLocaleString()}`:'';
-
-  const overJpy=dc.effJpy!=null&&dc.newCarryJpy<0;
-  const overTwd=dc.effTwd!=null&&dc.newCarryTwd<0;
-
-  // progress bars
-  const pctJpy=dc.effJpy>0?Math.min(100,Math.round(dc.spentJpy/dc.effJpy*100)):0;
-  const pctTwd=dc.effTwd>0?Math.min(100,Math.round(dc.spentTwd/dc.effTwd*100)):0;
+  // carry display (sum all jpy / all twd carries)
+  const carryJpy=(dc.carryJpyCash||0)+(dc.carryJpyCard||0);
+  const carryTwd=(dc.carryTwdCash||0)+(dc.carryTwdCard||0);
+  const carryJpyStr=carryJpy>0?`+¥${carryJpy.toLocaleString()}`:carryJpy<0?`-¥${Math.abs(carryJpy).toLocaleString()}`:'';
+  const carryTwdStr=carryTwd>0?`+NT$${carryTwd.toLocaleString()}`:carryTwd<0?`-NT$${Math.abs(carryTwd).toLocaleString()}`:'';
 
   let heroHtml=`
   <div class="ledger-hero">
@@ -1486,37 +1512,30 @@ function renderLedger(){
       </div>`:''}
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:10px">
-        <div style="font-size:10px;opacity:.7;margin-bottom:4px">日幣預算 ¥</div>
-        <input class="ledger-budget-input" id="ldBudgetJpy" type="number" placeholder="未設定"
-          value="${dl.budgetJpy!=null?dl.budgetJpy:''}" style="font-size:15px;width:100%">
-        ${dc.effJpy!=null?`
-        <div style="margin-top:8px">
-          <div class="ledger-bar-wrap"><div class="ledger-bar${overJpy?' over':''}" style="width:${pctJpy}%"></div></div>
-          <div style="font-size:10px;opacity:.85;margin-top:3px">
-            花 ¥${dc.spentJpy.toLocaleString()} / 有效 ¥${dc.effJpy.toLocaleString()}
-          </div>
-          <div style="font-size:11px;font-weight:700;margin-top:2px;color:${overJpy?'#f87171':'#a5f3c0'}">
-            ${overJpy?'超支 ¥'+Math.abs(dc.newCarryJpy).toLocaleString():'剩 ¥'+dc.newCarryJpy.toLocaleString()}
-          </div>
-        </div>`:''}
-      </div>
-      <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:10px">
-        <div style="font-size:10px;opacity:.7;margin-bottom:4px">台幣預算 NT$</div>
-        <input class="ledger-budget-input" id="ldBudgetTwd" type="number" placeholder="未設定"
-          value="${dl.budgetTwd!=null?dl.budgetTwd:''}" style="font-size:15px;width:100%">
-        ${dc.effTwd!=null?`
-        <div style="margin-top:8px">
-          <div class="ledger-bar-wrap"><div class="ledger-bar${overTwd?' over':''}" style="width:${pctTwd}%"></div></div>
-          <div style="font-size:10px;opacity:.85;margin-top:3px">
-            花 NT$${dc.spentTwd.toLocaleString()} / 有效 NT$${dc.effTwd.toLocaleString()}
-          </div>
-          <div style="font-size:11px;font-weight:700;margin-top:2px;color:${overTwd?'#f87171':'#a5f3c0'}">
-            ${overTwd?'超支 NT$'+Math.abs(dc.newCarryTwd).toLocaleString():'剩 NT$'+dc.newCarryTwd.toLocaleString()}
-          </div>
-        </div>`:''}
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      ${[
+        {id:'ldBudgetJpyCash',key:'budgetJpyCash',spent:dc.spentJpyCash,eff:dc.effJpyCash,carry:dc.newCarryJpyCash,over:dc.overJpyCash,label:'💴 現金 ¥'},
+        {id:'ldBudgetJpyCard',key:'budgetJpyCard',spent:dc.spentJpyCard,eff:dc.effJpyCard,carry:dc.newCarryJpyCard,over:dc.overJpyCard,label:'💳 簽帳 ¥'},
+        {id:'ldBudgetTwdCash',key:'budgetTwdCash',spent:dc.spentTwdCash,eff:dc.effTwdCash,carry:dc.newCarryTwdCash,over:dc.overTwdCash,label:'💵 現金 NT$'},
+        {id:'ldBudgetTwdCard',key:'budgetTwdCard',spent:dc.spentTwdCard,eff:dc.effTwdCard,carry:dc.newCarryTwdCard,over:dc.overTwdCard,label:'💳 簽帳 NT$'},
+      ].map(cfg=>{
+        const bval=dl[cfg.key]!=null?dl[cfg.key]:'';
+        const spent=cfg.spent||0; const eff=cfg.eff;
+        const carry=cfg.carry; const isOver=eff!=null&&carry<0;
+        const pct=eff>0?Math.min(100,Math.round(spent/eff*100)):0;
+        return `<div style="background:rgba(255,255,255,.12);border-radius:10px;padding:9px">
+          <div style="font-size:10px;opacity:.7;margin-bottom:4px">${cfg.label}</div>
+          <input class="ledger-budget-input" type="number" placeholder="未設定"
+            value="${bval}" data-budgetkey="${cfg.key}" style="font-size:14px;width:100%">
+          ${eff!=null?`<div style="margin-top:6px">
+            <div class="ledger-bar-wrap"><div class="ledger-bar${isOver?' over':''}" style="width:${pct}%"></div></div>
+            <div style="font-size:10px;opacity:.8;margin-top:2px">花 ${spent.toLocaleString()} / 有效 ${eff.toLocaleString()}</div>
+            <div style="font-size:11px;font-weight:700;color:${isOver?'#f87171':'#a5f3c0'}">
+              ${isOver?'超支 '+Math.abs(carry).toLocaleString():'剩 '+carry.toLocaleString()}
+            </div>
+          </div>`:''}
+        </div>`;
+      }).join('')}
     </div>
   </div>`;
 
@@ -1534,18 +1553,20 @@ function renderLedger(){
   }else{
     html+=`<div>`;
     filtered.forEach(e=>{
-      const eTwd=e.amountTwd!=null?e.amountTwd:(e.amount!=null?Math.round(Number(e.amount)*rate):'');
-      const eJpy=e.amount!=null?e.amount:(e.amountTwd!=null?Math.round(Number(e.amountTwd)/rate):'');
-      html+=`<div class="ledger-entry" style="flex-wrap:wrap;gap:5px">
+      const isCash=(e.payType||'cash')==='cash';
+      const isJpy=(e.currency||'jpy')==='jpy';
+      const amt=isJpy?(e.amount||''):(e.amountTwd||'');
+      const unit=isJpy?'¥':'NT$';
+      const payColor=isCash?'#16a34a':'#2563eb';
+      const payLabel=isCash?'現金':'簽帳';
+      html+=`<div class="ledger-entry" style="flex-wrap:wrap;gap:5px;align-items:center">
         <span class="ledger-entry-icon">${LEDGER_ICONS[e.cat]||'📝'}</span>
         <input class="ledger-entry-name" value="${escA(e.name)}" data-ledgername="${e.id}" placeholder="支出名稱">
-        <div style="display:flex;align-items:center;gap:3px;margin-left:auto">
-          <span style="font-size:10px;color:var(--muted)">¥</span>
-          <input class="ledger-entry-amount" type="number" value="${eJpy}" data-ledgerjpy="${e.id}" placeholder="日幣" style="width:66px">
-          <span style="color:#ccc;font-size:11px">⇄</span>
-          <input class="ledger-entry-amount" type="number" value="${eTwd}" data-ledgertwd="${e.id}" placeholder="台幣" style="width:66px;color:#7c3aed">
-          <span class="ledger-entry-curr">TWD</span>
-        </div>
+        <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;background:${payColor}22;color:${payColor};cursor:pointer;flex-shrink:0"
+          data-togglepay="${e.id}" title="點擊切換">${payLabel}</span>
+        <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;background:#7c3aed22;color:#7c3aed;cursor:pointer;flex-shrink:0"
+          data-togglecurr="${e.id}" title="點擊切換">${unit}</span>
+        <input class="ledger-entry-amount" type="number" value="${amt}" data-ledgeramtfield="${e.id}" placeholder="金額" style="width:80px;margin-left:auto">
         <button class="ledger-entry-del" data-ledgerdel="${e.id}">✕</button>
       </div>`;
     });
@@ -1559,21 +1580,20 @@ function renderLedger(){
   html+=`
   <div class="ledger-section-title">新增支出</div>
   <input class="ledger-add-input" id="ledgerAddName" placeholder="支出名稱" style="width:100%;margin-bottom:6px">
-  <div class="ledger-add-row">
-    <div style="flex:1;display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:0 10px">
-      <span style="font-size:11px;color:var(--muted);white-space:nowrap">¥</span>
-      <input id="ledgerAddJpy" type="number" placeholder="日幣" style="border:none;background:transparent;outline:none;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%;padding:7px 0">
-    </div>
-    <span style="color:#ccc;font-size:16px;flex-shrink:0">⇄</span>
-    <div style="flex:1;display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:0 10px">
-      <span style="font-size:11px;color:var(--muted);white-space:nowrap">NT$</span>
-      <input id="ledgerAddTwd" type="number" placeholder="台幣" style="border:none;background:transparent;outline:none;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%;padding:7px 0">
-    </div>
+  <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+    <button class="ledger-cat-tab" data-addpaytype="cash" style="background:${(ledger.newPayType||'cash')==='cash'?'#16a34a':'#f0ede8'};color:${(ledger.newPayType||'cash')==='cash'?'#fff':'#888'}">💴 現金</button>
+    <button class="ledger-cat-tab" data-addpaytype="card" style="background:${(ledger.newPayType||'cash')==='card'?'#2563eb':'#f0ede8'};color:${(ledger.newPayType||'cash')==='card'?'#fff':'#888'}">💳 簽帳卡</button>
+    <button class="ledger-cat-tab" data-addcurr="jpy" style="margin-left:6px;background:${(ledger.newCurr||'jpy')==='jpy'?'#7c3aed':'#f0ede8'};color:${(ledger.newCurr||'jpy')==='jpy'?'#fff':'#888'}">¥ 日幣</button>
+    <button class="ledger-cat-tab" data-addcurr="twd" style="background:${(ledger.newCurr||'jpy')==='twd'?'#7c3aed':'#f0ede8'};color:${(ledger.newCurr||'jpy')==='twd'?'#fff':'#888'}">NT$ 台幣</button>
   </div>
-  <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:0 10px;margin-bottom:6px">
+    <span style="font-size:11px;color:var(--muted);white-space:nowrap">${(ledger.newCurr||'jpy')==='jpy'?'¥':'NT$'}</span>
+    <input id="ledgerAddAmt" type="number" placeholder="金額" style="border:none;background:transparent;outline:none;font-size:15px;font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%;padding:9px 0;font-weight:700">
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
     ${['餐飲','交通','購物','票券','住宿','其他'].map(c=>`<button class="ledger-cat-tab${(ledger.newCat||'餐飲')===c?' active':''}" data-ledgernewcat="${c}" style="font-size:10px;padding:2px 8px">${LEDGER_ICONS[c]} ${c}</button>`).join('')}
   </div>
-  <button class="ledger-add-btn" id="ledgerAddBtn" style="width:100%;margin-top:8px">＋ 新增</button>`;
+  <button class="ledger-add-btn" id="ledgerAddBtn" style="width:100%;margin-top:4px">＋ 新增</button>`;
 
   body.innerHTML=html;
 
@@ -1581,32 +1601,40 @@ function renderLedger(){
   body.querySelectorAll('[data-ledgerdayidx]').forEach(btn=>btn.addEventListener('click',()=>{
     getLedger().activeDayIdx=Number(btn.dataset.ledgerdayidx); renderLedger();
   }));
-  body.querySelector('#ldBudgetJpy')?.addEventListener('change',e=>{
-    const v=e.target.value===''?null:Number(e.target.value);
-    getDayLedger(activeDayIdx).budgetJpy=v; scheduleSave(); renderLedger();
-  });
-  body.querySelector('#ldBudgetTwd')?.addEventListener('change',e=>{
-    const v=e.target.value===''?null:Number(e.target.value);
-    getDayLedger(activeDayIdx).budgetTwd=v; scheduleSave(); renderLedger();
-  });
+  // budget inputs (dynamic keys)
+  body.querySelectorAll('[data-budgetkey]').forEach(input=>input.addEventListener('change',()=>{
+    const v=input.value===''?null:Number(input.value);
+    getDayLedger(activeDayIdx)[input.dataset.budgetkey]=v; scheduleSave(); renderLedger();
+  }));
   body.querySelectorAll('[data-ledgercat]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().activeCat=btn.dataset.ledgercat;renderLedger();}));
   body.querySelectorAll('[data-ledgernewcat]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().newCat=btn.dataset.ledgernewcat;renderLedger();}));
+  body.querySelectorAll('[data-addpaytype]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().newPayType=btn.dataset.addpaytype;renderLedger();}));
+  body.querySelectorAll('[data-addcurr]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().newCurr=btn.dataset.addcurr;renderLedger();}));
   body.querySelectorAll('[data-ledgername]').forEach(input=>input.addEventListener('change',()=>{
     const e=getDayLedger(activeDayIdx).entries.find(x=>x.id===input.dataset.ledgername);
     if(e){e.name=input.value;scheduleSave();}
   }));
-  body.querySelectorAll('[data-ledgerjpy]').forEach(input=>input.addEventListener('change',()=>{
+  // toggle payType on entry badge
+  body.querySelectorAll('[data-togglepay]').forEach(el=>el.addEventListener('click',()=>{
     const dl=getDayLedger(activeDayIdx);
-    const e=dl.entries.find(x=>x.id===input.dataset.ledgerjpy); if(!e)return;
-    e.amount=input.value===''?null:Number(input.value);
-    if(e.amount!=null) e.amountTwd=Math.round(e.amount*rate);
+    const e=dl.entries.find(x=>x.id===el.dataset.togglepay); if(!e)return;
+    e.payType=(e.payType||'cash')==='cash'?'card':'cash';
     scheduleSave();renderLedger();
   }));
-  body.querySelectorAll('[data-ledgertwd]').forEach(input=>input.addEventListener('change',()=>{
+  // toggle currency on entry badge
+  body.querySelectorAll('[data-togglecurr]').forEach(el=>el.addEventListener('click',()=>{
     const dl=getDayLedger(activeDayIdx);
-    const e=dl.entries.find(x=>x.id===input.dataset.ledgertwd); if(!e)return;
-    e.amountTwd=input.value===''?null:Number(input.value);
-    if(e.amountTwd!=null) e.amount=Math.round(e.amountTwd/rate);
+    const e=dl.entries.find(x=>x.id===el.dataset.togglecurr); if(!e)return;
+    e.currency=(e.currency||'jpy')==='jpy'?'twd':'jpy';
+    scheduleSave();renderLedger();
+  }));
+  // amount field on entry
+  body.querySelectorAll('[data-ledgeramtfield]').forEach(input=>input.addEventListener('change',()=>{
+    const dl=getDayLedger(activeDayIdx);
+    const e=dl.entries.find(x=>x.id===input.dataset.ledgeramtfield); if(!e)return;
+    const v=input.value===''?null:Number(input.value);
+    if((e.currency||'jpy')==='jpy'){e.amount=v;e.amountTwd=v!=null?Math.round(v*rate):null;}
+    else{e.amountTwd=v;e.amount=v!=null?Math.round(v/rate):null;}
     scheduleSave();renderLedger();
   }));
   body.querySelectorAll('[data-ledgerdel]').forEach(btn=>btn.addEventListener('click',()=>{
@@ -1614,32 +1642,27 @@ function renderLedger(){
     dl.entries=dl.entries.filter(e=>e.id!==btn.dataset.ledgerdel);
     scheduleSave();renderLedger();
   }));
-  body.querySelector('#ledgerAddJpy')?.addEventListener('input',()=>{
-    const v=body.querySelector('#ledgerAddJpy').value;
-    if(v) body.querySelector('#ledgerAddTwd').value=Math.round(Number(v)*rate);
-    else body.querySelector('#ledgerAddTwd').value='';
-  });
-  body.querySelector('#ledgerAddTwd')?.addEventListener('input',()=>{
-    const v=body.querySelector('#ledgerAddTwd').value;
-    if(v) body.querySelector('#ledgerAddJpy').value=Math.round(Number(v)/rate);
-    else body.querySelector('#ledgerAddJpy').value='';
-  });
   body.querySelector('#ledgerAddBtn')?.addEventListener('click',()=>{
     const name=body.querySelector('#ledgerAddName')?.value.trim();
-    const jpy=body.querySelector('#ledgerAddJpy')?.value;
-    const twd=body.querySelector('#ledgerAddTwd')?.value;
-    if(!name&&!jpy&&!twd)return;
-    const dl=getDayLedger(activeDayIdx);
+    const amt=body.querySelector('#ledgerAddAmt')?.value;
+    if(!name&&!amt)return;
+    const ledger=getLedger(); const dl=getDayLedger(activeDayIdx);
     if(!dl.entries) dl.entries=[];
+    const isJpy=(ledger.newCurr||'jpy')==='jpy';
+    const v=amt?Number(amt):null;
     dl.entries.push({
       id:'le'+Date.now(), name:name||'支出',
-      amount:jpy?Number(jpy):null,
-      amountTwd:twd?Number(twd):null,
-      cat:getLedger().newCat||'餐飲',
+      amount:isJpy?v:(v!=null?Math.round(v/rate):null),
+      amountTwd:isJpy?(v!=null?Math.round(v*rate):null):v,
+      cat:ledger.newCat||'餐飲',
+      payType:ledger.newPayType||'cash',
+      currency:ledger.newCurr||'jpy',
     });
+    body.querySelector('#ledgerAddName').value='';
+    body.querySelector('#ledgerAddAmt').value='';
     scheduleSave();renderLedger();
   });
-  ['#ledgerAddName','#ledgerAddJpy','#ledgerAddTwd'].forEach(sel=>{
+  ['#ledgerAddName','#ledgerAddAmt'].forEach(sel=>{
     body.querySelector(sel)?.addEventListener('keydown',e=>{if(e.key==='Enter')body.querySelector('#ledgerAddBtn')?.click();});
   });
 }
