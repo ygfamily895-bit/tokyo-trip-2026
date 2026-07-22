@@ -146,12 +146,11 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 /* BUDGET ROW */
 .budget-row{display:flex;align-items:center;gap:6px;padding:4px 4px 0;flex-wrap:wrap}
 .budget-item{display:flex;align-items:center;gap:4px;background:#f5f3ef;border-radius:6px;padding:3px 8px;font-size:11.5px}
-.budget-item.twd-item{background:#eaf4ff}
 .budget-label{color:var(--muted);font-size:10px}
-.budget-amount{font-weight:700;color:var(--text);border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;font-size:12px;width:70px;text-align:right}
+.budget-amount{font-weight:700;color:var(--text);border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;font-size:12px;width:72px;text-align:right}
 .budget-amount:focus{background:#ebe8e0;border-radius:3px;padding:0 3px}
-.budget-currency{font-size:10px;color:var(--muted)}
-.budget-divider{color:#ccc;font-size:12px;user-select:none}
+.budget-curr-select{font-size:10px;color:var(--muted);border:none;background:transparent;outline:none;cursor:pointer;font-family:'Noto Sans TC',sans-serif;max-width:52px}
+.budget-equiv{font-size:10px;color:var(--muted);margin-left:2px;white-space:nowrap}
 
 /* STOP FIELDS */
 .stop-field{border:1px solid #ece8e0;border-radius:7px;overflow:hidden;background:#fff}
@@ -696,6 +695,21 @@ let activeFilterId = 'all';
 let emojiTarget = null;
 let templateTargetDay = null;
 
+
+// Currencies available per stop
+const STOP_CURRENCIES = [
+  {code:'JPY',symbol:'¥',name:'日圓'},
+  {code:'TWD',symbol:'NT$',name:'台幣'},
+  {code:'USD',symbol:'$',name:'美元'},
+  {code:'EUR',symbol:'€',name:'歐元'},
+  {code:'KRW',symbol:'₩',name:'韓圓'},
+  {code:'HKD',symbol:'HK$',name:'港幣'},
+  {code:'GBP',symbol:'£',name:'英鎊'},
+  {code:'THB',symbol:'฿',name:'泰銖'},
+  {code:'SGD',symbol:'S$',name:'新幣'},
+  {code:'AUD',symbol:'A$',name:'澳幣'},
+];
+function getStopCurrSymbol(code){ return STOP_CURRENCIES.find(c=>c.code===code)?.symbol||code; }
 // ── INIT ──
 async function init() {
   try {
@@ -897,15 +911,20 @@ function renderDay(day) {
 
 function renderStop(s, dayId, idx, allStops) {
   const stopFields = (s.fields||[]).map(f=>renderStopField(f,s.id,dayId)).join('');
-  const jpy = s.budget!=null?s.budget:'', twd = s.budgetTwd!=null?s.budgetTwd:'';
+  const stopCurr = s.currency || 'JPY';
+  const stopSym = getStopCurrSymbol(stopCurr);
+  const stopAmt = s.budgetAmt != null ? s.budgetAmt : (s.budget != null ? s.budget : '');
+  // equiv in TWD for display
+  const equivTwd = s.budgetTwd != null ? s.budgetTwd : null;
+  const equivStr = stopCurr !== 'TWD' && equivTwd != null ? `≈ NT$${Number(equivTwd).toLocaleString()}` : '';
+  const currOptions = STOP_CURRENCIES.map(c=>`<option value="${c.code}"${stopCurr===c.code?' selected':''}>${c.symbol} ${c.code}</option>`).join('');
   const budgetRow = `<div class="budget-row">
-    <div class="budget-item"><span class="budget-label">¥</span>
-      <input class="budget-amount" type="number" min="0" value="${jpy}" placeholder="日圓" data-budgetjpy="${s.id}" data-dayid="${dayId}">
-      <span class="budget-currency">JPY</span></div>
-    <span class="budget-divider">⇄</span>
-    <div class="budget-item twd-item"><span class="budget-label" style="color:#1a73e8">NT$</span>
-      <input class="budget-amount" type="number" min="0" value="${twd}" placeholder="台幣" data-budgettwd="${s.id}" data-dayid="${dayId}" style="color:#1a73e8">
-      <span class="budget-currency" style="color:#1a73e8">TWD</span></div>
+    <div class="budget-item">
+      <input class="budget-amount" type="number" min="0" value="${stopAmt}" placeholder="費用"
+        data-stopcost="${s.id}" data-dayid="${dayId}">
+      <select class="budget-curr-select" data-stopcurr="${s.id}" data-dayid="${dayId}">${currOptions}</select>
+    </div>
+    ${equivStr?`<span class="budget-equiv">${equivStr}</span>`:''}
   </div>`;
   const isLast = idx === allStops.length-1;
   const hasTransit = s.transit != null;
@@ -1077,9 +1096,8 @@ function bindDayEvents(sec, day) {
     // stop note
     if (t.dataset.stopnote) { updateStop(t.dataset.dayid,t.dataset.stopnote,'note',t.value); return; }
     // budget jpy
-    if (t.dataset.budgetjpy) { onBudgetChange(t.dataset.dayid,t.dataset.budgetjpy,'jpy',t.value); return; }
-    // budget twd
-    if (t.dataset.budgettwd) { onBudgetChange(t.dataset.dayid,t.dataset.budgettwd,'twd',t.value); return; }
+    if (t.dataset.stopcost) { onStopCostChange(t.dataset.dayid,t.dataset.stopcost,t.value); return; }
+    if (t.dataset.stopcurr) { onStopCurrChange(t.dataset.dayid,t.dataset.stopcurr,t.value); return; }
     // transit time
     if (t.dataset.transit) { updateStop(t.dataset.dayid,t.dataset.transit,'transit',t.value); return; }
     // stop field label
@@ -1133,21 +1151,88 @@ function updateStop(dayId, stopId, field, val) {
   const s=d.stops.find(x=>x.id===stopId); if(s){s[field]=val;scheduleSave();}
 }
 
-function onBudgetChange(dayId, stopId, currency, rawVal) {
+async function convertToJpyTwd(amount, fromCurr) {
+  // Convert amount in fromCurr to JPY and TWD
+  const rate = getLiveRate(); // JPY→TWD rate
+  let jpy = null, twd = null;
+  if (fromCurr === 'JPY') {
+    jpy = amount;
+    twd = amount != null ? Math.round(amount * rate) : null;
+  } else if (fromCurr === 'TWD') {
+    twd = amount;
+    jpy = amount != null ? Math.round(amount / rate) : null;
+  } else {
+    // Use cached rates if available, else try frankfurter
+    const cacheKey = 'rate_' + fromCurr;
+    let toJpy = DATA.meta?.[cacheKey];
+    if (!toJpy) {
+      try {
+        const r = await fetch(`https://api.frankfurter.app/latest?from=${fromCurr}&to=JPY`);
+        const d = await r.json();
+        toJpy = d.rates?.JPY;
+        if (toJpy && DATA.meta) DATA.meta[cacheKey] = toJpy;
+      } catch(e) { toJpy = null; }
+    }
+    if (toJpy && amount != null) {
+      jpy = Math.round(amount * toJpy);
+      twd = Math.round(jpy * rate);
+    }
+  }
+  return { jpy, twd };
+}
+
+async function onStopCostChange(dayId, stopId, rawVal) {
   const d=DATA.days.find(x=>x.id===dayId); if(!d)return;
   const s=d.stops.find(x=>x.id===stopId); if(!s)return;
   const val = rawVal===''?null:Number(rawVal);
-  const rate = getLiveRate();
-  if (currency==='jpy') {
-    s.budget=val;
-    const twdEl=document.querySelector(`[data-budgettwd="${stopId}"]`);
-    if(twdEl){const v=val!=null?Math.round(val*rate):null;twdEl.value=v!=null?v:'';s.budgetTwd=v;}
-  } else {
-    s.budgetTwd=val;
-    const jpyEl=document.querySelector(`[data-budgetjpy="${stopId}"]`);
-    if(jpyEl){const v=val!=null?Math.round(val/rate):null;jpyEl.value=v!=null?v:'';s.budget=v;}
-  }
+  s.budgetAmt = val;
+  const curr = s.currency || 'JPY';
+  const { jpy, twd } = await convertToJpyTwd(val, curr);
+  s.budget = jpy;
+  s.budgetTwd = twd;
   scheduleSave(); renderBudgets();
+  // Update equiv display without full re-render
+  const equivEl = document.querySelector(`[data-stopcost="${stopId}"]`)?.closest('.budget-row')?.querySelector('.budget-equiv');
+  if (equivEl) {
+    equivEl.textContent = (curr !== 'TWD' && twd != null) ? `≈ NT$${twd.toLocaleString()}` : '';
+  }
+}
+
+async function onStopCurrChange(dayId, stopId, newCurr) {
+  const d=DATA.days.find(x=>x.id===dayId); if(!d)return;
+  const s=d.stops.find(x=>x.id===stopId); if(!s)return;
+  const oldCurr = s.currency || 'JPY';
+  s.currency = newCurr;
+  // Convert current JPY amount to new currency
+  if (s.budget != null && oldCurr !== newCurr) {
+    const rate = getLiveRate();
+    let newAmt = null;
+    if (newCurr === 'JPY') newAmt = s.budget;
+    else if (newCurr === 'TWD') newAmt = s.budgetTwd || Math.round(s.budget * rate);
+    else {
+      // JPY → newCurr via frankfurter
+      const cacheKey = 'rate_JPY_' + newCurr;
+      let toNew = DATA.meta?.[cacheKey];
+      if (!toNew) {
+        try {
+          const r = await fetch(`https://api.frankfurter.app/latest?from=JPY&to=${newCurr}`);
+          const d2 = await r.json();
+          toNew = d2.rates?.[newCurr];
+          if (toNew && DATA.meta) DATA.meta[cacheKey] = toNew;
+        } catch(e) {}
+      }
+      if (toNew) newAmt = Math.round(s.budget * toNew);
+    }
+    s.budgetAmt = newAmt;
+    const { jpy, twd } = await convertToJpyTwd(newAmt, newCurr);
+    s.budget = jpy; s.budgetTwd = twd;
+  }
+  render(); scheduleSave(); renderBudgets();
+}
+
+// Keep old fn name for compatibility
+function onBudgetChange(dayId, stopId, currency, rawVal) {
+  onStopCostChange(dayId, stopId, rawVal);
 }
 
 function moveStop(srcDayId,srcStopId,tgtDayId,tgtStopId){
