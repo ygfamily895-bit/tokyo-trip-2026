@@ -1986,17 +1986,28 @@ document.getElementById('resetCancelBtn').addEventListener('click',()=>{
 });
 document.getElementById('resetConfirmBtn').addEventListener('click',async()=>{
   document.getElementById('resetModalOverlay').classList.add('hidden');
-  // Keep meta (title, cover, rates) but reset everything else
+  // Pause snapshot listener to prevent remote data overwriting reset
+  if(unsubscribe){ unsubscribe(); unsubscribe=null; }
+  // Keep meta (title, cover, rates) but wipe everything else
   const savedMeta = JSON.parse(JSON.stringify(DATA.meta||{}));
-  DATA = JSON.parse(JSON.stringify(DEFAULT_DATA));
-  DATA.meta = savedMeta;
-  DATA.ledger = {days:{},activeDayIdx:0,activeCat:'全部',newCat:'餐飲',newPayBucket:'b1'};
-  DATA.packing = null; // will reinit on open
-  await saveToFirestore();
+  DATA = {
+    meta: savedMeta,
+    days: [],
+    ledger: {days:{},activeDayIdx:0,activeCat:'全部',newCat:'餐飲',newPayBucket:'b1',buckets:JSON.parse(JSON.stringify(DEFAULT_BUCKETS))},
+    packing: null,
+  };
+  // Save to Firestore directly (bypass scheduleSave debounce)
+  setSyncStatus('saving');
+  try {
+    await setDoc(doc(db,'trips',TRIP_DOC_ID), DATA);
+    setSyncStatus('synced');
+  } catch(e) { setSyncStatus('error'); }
   render();
   applyCover();
   renderBudgets();
   toast('✓ 已清空全部資料，可以開始新旅程！');
+  // Re-subscribe after short delay
+  setTimeout(()=>subscribeToChanges(), 500);
 });
 document.getElementById('resetModalOverlay').addEventListener('click',e=>{
   if(e.target===document.getElementById('resetModalOverlay'))
