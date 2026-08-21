@@ -416,6 +416,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
     <div class="topbar-right">
       <button class="btn btn-secondary" id="addDayBtn">＋ 新增天數</button>
       <button class="btn btn-secondary" id="collapseAllBtn">收合</button>
+      <button class="btn btn-secondary" id="settingsBtn">⚙ 設定</button>
       <button class="btn" id="resetBtn" style="background:rgba(239,68,68,.18);color:#fca5a5;font-size:11px">🗑 清空</button>
     </div>
   </div>
@@ -523,12 +524,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
       <div class="field"><label>標題</label><input id="mTitle" placeholder="例：東京市區散步"></div>
       <div class="field"><label>日期</label><input id="mDate" placeholder="5月22日（五）"></div>
       <div class="field"><label>類別</label>
-        <select id="mCat">
-          <option value="transit">抵返</option><option value="tokyo" selected>東京市區</option>
-          <option value="daytrip">近郊一日遊</option><option value="event">演唱會</option>
-          <option value="yokohama">橫濱</option><option value="shopping">採買</option>
-          <option value="free">待規劃</option>
-        </select>
+        <select id="mCat" id="mCatSelect"></select>
       </div>
       <div class="field"><label>Emoji</label><input id="mEmoji" placeholder="🗺️" maxlength="2" style="width:60px"></div>
     </div>
@@ -555,6 +551,23 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
       <button class="btn btn-ghost" id="resetCancelBtn" style="flex:1">取消</button>
       <button class="btn" id="resetConfirmBtn" style="flex:1;background:#ef4444;color:#fff">確定清空</button>
     </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay hidden" id="settingsModalOverlay">
+  <div class="modal" style="width:480px;max-height:80vh;overflow-y:auto">
+    <h2 style="margin-bottom:16px">⚙️ 自訂設定</h2>
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:8px">天數類別顏色</div>
+    <div id="dayCatsEditor" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+    <button id="addDayCatBtn" style="display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:6px 14px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:20px">＋ 新增類別</button>
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;margin-bottom:8px">記帳支出類別</div>
+    <div id="ledgerCatsEditor" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+    <button id="addLedgerCatBtn" style="display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:6px 14px;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;margin-bottom:8px">＋ 新增類別</button>
+
+    <div class="modal-actions"><button class="btn btn-primary" id="settingsCloseBtn">完成</button></div>
   </div>
 </div>
 
@@ -609,7 +622,7 @@ const DEFAULT_PACK = {sections:[
 ]};
 
 const DEFAULT_DATA = {
-  meta:{title:'✈ 東京獨旅行程',subtitle:'2026 JAPAN TRIP',coverUrl:'',customRate:0.221},
+  meta:{title:'✈ 東京獨旅行程',subtitle:'2026 JAPAN TRIP',coverUrl:'',customRate:0.221,ledgerCats:[{id:"餐飲",icon:"🍜"},{id:"交通",icon:"🚆"},{id:"購物",icon:"🛍️"},{id:"票券",icon:"🎫"},{id:"住宿",icon:"🏨"},{id:"其他",icon:"📝"}],dayCats:[{id:'transit',label:'抵返',color:'#888580'},{id:'tokyo',label:'東京',color:'#3a5a8c'},{id:'daytrip',label:'近郊',color:'#6b4fa0'},{id:'event',label:'演唱會',color:'#c84b31'},{id:'yokohama',label:'橫濱',color:'#1a7a6e'},{id:'shopping',label:'採買',color:'#b8760a'},{id:'free',label:'待規劃',color:'#bbb'}]},
   days:[
     {id:'d1',num:'D1',emoji:'🛬',title:'抵達日',date:'5月8日（五）',cat:'transit',tip:'',stops:[
       {id:'s1',icon:'✈️',name:'成田機場抵達',note:'辦理入境、取行李、購買 Suica 或 IC 卡'},
@@ -710,6 +723,11 @@ const STOP_CURRENCIES = [
   {code:'AUD',symbol:'A$',name:'澳幣'},
 ];
 function getStopCurrSymbol(code){ return STOP_CURRENCIES.find(c=>c.code===code)?.symbol||code; }
+
+// ── DAY CATEGORIES ──
+function getDayCats(){ return DATA.meta?.dayCats || [{id:'free',label:'待規劃',color:'#bbb'}]; }
+function catLabel(id){ return getDayCats().find(c=>c.id===id)?.label || id; }
+function catColor(id){ return getDayCats().find(c=>c.id===id)?.color || '#bbb'; }
 // ── INIT ──
 async function init() {
   try {
@@ -882,7 +900,8 @@ function renderDay(day) {
   const jpy = calcDayBudgetJpy(day), twd = calcDayBudgetTwd(day);
   const budgetTotal = (jpy>0||twd>0) ? `<div class="day-budget-total">當日小計 <strong>¥${jpy.toLocaleString()}</strong><span style="color:#1a73e8;font-weight:700;font-size:12px">NT$${twd.toLocaleString()}</span></div>` : '';
   const todayBadge = isToday ? '<span class="today-badge">📍 今天</span>' : '';
-  return `<div class="day-card${isToday?' is-today':''}" data-cat="${day.cat}" data-id="${day.id}">
+  const catClr=catColor(day.cat);
+  return `<div class="day-card${isToday?' is-today':''}" data-cat="${day.cat}" data-id="${day.id}" style="border-left-color:${catClr}">
     <div class="day-header" data-dayid="${day.id}">
       <span class="day-num">${esc(day.num)}</span>${todayBadge}
       <div class="day-title-wrap">
@@ -890,7 +909,7 @@ function renderDay(day) {
         <input class="day-title-text" value="${escA(day.title)}" data-field="title" data-dayid="${day.id}" placeholder="天數標題">
       </div>
       <select class="cat-select" data-catselect="${day.id}">
-        ${['transit','tokyo','daytrip','event','yokohama','shopping','free'].map(c=>`<option value="${c}"${day.cat===c?' selected':''}>${catL(c)}</option>`).join('')}
+        ${getDayCats().map(c=>`<option value="${c.id}"${day.cat===c.id?' selected':''}>${c.label}</option>`).join('')}
       </select>
       <input class="day-date-input" value="${escA(day.date)}" data-field="date" data-dayid="${day.id}" placeholder="日期">
       <button class="icon-btn del" data-deleteday="${day.id}">🗑</button>
@@ -1001,7 +1020,7 @@ function renderField(f, dayId) {
   </div>`;
 }
 
-function catL(c){return{transit:'抵返',tokyo:'東京',daytrip:'近郊',event:'演唱會',yokohama:'橫濱',shopping:'採買',free:'待規劃'}[c]||c}
+function catL(c){ return catLabel(c); }
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function escA(s){return(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;')}
 function autoResize(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px'}
@@ -1301,8 +1320,10 @@ function openAddDayModal(){
   document.getElementById('mDayNum').value='D'+(DATA.days.length+1);
   document.getElementById('mTitle').value='';
   document.getElementById('mDate').value='';
-  document.getElementById('mCat').value='free';
   document.getElementById('mEmoji').value='🗺️';
+  const mCat=document.getElementById('mCat');
+  mCat.innerHTML=getDayCats().map(c=>`<option value="${c.id}">${c.label}</option>`).join('');
+  mCat.value=getDayCats()[0]?.id||'free';
   document.getElementById('modalOverlay').classList.remove('hidden');
 }
 document.getElementById('cancelAddDay').addEventListener('click',()=>document.getElementById('modalOverlay').classList.add('hidden'));
@@ -1667,12 +1688,19 @@ function renderPackList(){
   const pct=total?Math.round(checked/total*100):0;
   let html=`<div class="pack-progress"><div class="pack-progress-bar" style="width:${pct}%"></div></div><div class="pack-stats">${checked} / ${total} 已確認</div>`;
   pack.sections.forEach(sec=>{
-    html+=`<div class="pack-section"><div class="pack-section-title">${sec.name}<span style="font-size:10px;color:var(--muted);font-weight:400;text-transform:none">${sec.items.filter(i=>i.checked).length}/${sec.items.length}</span></div>`;
+    html+=`<div class="pack-section">
+      <div class="pack-section-title" style="display:flex;align-items:center;gap:6px">
+        <input value="${escA(sec.name)}" data-packsecname="${sec.id}"
+          style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;flex:1;min-width:0">
+        <span style="font-size:10px;font-weight:400;text-transform:none;flex-shrink:0">${sec.items.filter(i=>i.checked).length}/${sec.items.length}</span>
+        <button data-packsecdel="${sec.id}" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:11px;padding:1px 4px;border-radius:4px;flex-shrink:0" title="刪除此分類">✕</button>
+      </div>`;
     sec.items.forEach(item=>{
       html+=`<div class="pack-item"><div class="pack-check${item.checked?' checked':''}" data-packcheck="${item.id}" data-secid="${sec.id}"></div><input class="pack-label${item.checked?' checked-text':''}" value="${escA(item.label)}" data-packlabel="${item.id}" data-secid="${sec.id}"><button class="pack-del" data-packdel="${item.id}" data-secid="${sec.id}">✕</button></div>`;
     });
     html+=`<div class="pack-add-row"><input class="pack-add-input" id="packinput-${sec.id}" placeholder="新增項目…"><button class="pack-add-btn" data-packadd="${sec.id}">＋</button></div></div>`;
   });
+  html+=`<button id="packAddSectionBtn" style="display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:7px 14px;color:var(--muted);font-size:12px;cursor:pointer;width:100%;font-family:'Noto Sans TC',sans-serif;margin-top:4px">＋ 新增分類</button>`;
   body.innerHTML=html;
   body.querySelectorAll('[data-packcheck]').forEach(el=>el.addEventListener('click',()=>{
     const sec=getPackData().sections.find(s=>s.id===el.dataset.secid);
@@ -1695,6 +1723,26 @@ function renderPackList(){
     if(sec){sec.items.push({id:'pi'+Date.now(),label,checked:false});input.value='';scheduleSave();renderPackList();}
   }));
   body.querySelectorAll('.pack-add-input').forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter'){const btn=body.querySelector(`[data-packadd="${el.id.replace('packinput-','')}"]`);btn?.click();}}));
+  body.querySelectorAll('[data-packsecname]').forEach(input=>input.addEventListener('change',()=>{
+    const sec=getPackData().sections.find(s=>s.id===input.dataset.packsecname);
+    if(sec){sec.name=input.value;scheduleSave();}
+  }));
+  body.querySelectorAll('[data-packsecdel]').forEach(btn=>btn.addEventListener('click',()=>{
+    const pack=getPackData();
+    if(pack.sections.length<=1){toast('至少需要保留一個分類');return;}
+    pack.sections=pack.sections.filter(s=>s.id!==btn.dataset.packsecdel);
+    scheduleSave();renderPackList();
+  }));
+  body.querySelector('#packAddSectionBtn')?.addEventListener('click',()=>{
+    const pack=getPackData();
+    pack.sections.push({id:'ps'+Date.now(),name:'新分類',items:[]});
+    scheduleSave();renderPackList();
+    // Focus the new section name
+    setTimeout(()=>{
+      const inputs=body.querySelectorAll('[data-packsecname]');
+      inputs[inputs.length-1]?.select();
+    },50);
+  });
 }
 
 // ── TOAST ──
@@ -1709,9 +1757,13 @@ const DEFAULT_BUCKETS = [
   {id:'b3', label:'現金', currency:'twd', icon:'💵'},
   {id:'b4', label:'簽帳卡', currency:'twd', icon:'💳'},
 ];
+
+// ── LEDGER CATEGORIES ──
+function getLedgerCats(){ return DATA.meta?.ledgerCats || [{id:'其他',icon:'📝'}]; }
+function getLedgerIcon(id){ return getLedgerCats().find(c=>c.id===id)?.icon || '📝'; }
 // ── LEDGER ──
-const LEDGER_CATS = ['全部','餐飲','交通','購物','票券','住宿','其他'];
-const LEDGER_ICONS = {'餐飲':'🍜','交通':'🚆','購物':'🛍️','票券':'🎫','住宿':'🏨','其他':'📝'};
+// LEDGER_CATS now dynamic — use getLedgerCats()
+// LEDGER_ICONS now dynamic — use getLedgerIcon(id)
 
 function getLedger(){
   if(!DATA.ledger) DATA.ledger={days:{},activeDayIdx:0,activeCat:'全部',newCat:'餐飲',newPayBucket:'b1'};
@@ -1858,7 +1910,7 @@ function renderLedger(){
 
   let html=dayTabsHtml+heroHtml;
   html+=`<div class="ledger-cat-tabs">
-    ${LEDGER_CATS.map(c=>`<button class="ledger-cat-tab${activeCat===c?' active':''}" data-ledgercat="${c}">${c}</button>`).join('')}
+    ${['全部',...getLedgerCats().map(c=>c.id)].map(c=>`<button class="ledger-cat-tab${activeCat===c?' active':''}" data-ledgercat="${c}">${c==='全部'?'全部':getLedgerIcon(c)+' '+c}</button>`).join('')}
   </div>`;
 
   if(filtered.length===0){
@@ -1873,7 +1925,7 @@ function renderLedger(){
       const payLabel=bucket?`${bucket.icon} ${bucket.label}`:'';
       const payColor='#7c3aed';
       html+=`<div class="ledger-entry" style="flex-wrap:wrap;gap:5px;align-items:center">
-        <span class="ledger-entry-icon">${LEDGER_ICONS[e.cat]||'📝'}</span>
+        <span class="ledger-entry-icon">${getLedgerIcon(e.cat)}</span>
         <input class="ledger-entry-name" value="${escA(e.name)}" data-ledgername="${e.id}" placeholder="支出名稱">
         <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;background:${payColor}22;color:${payColor};cursor:pointer;flex-shrink:0"
           data-togglepay="${e.id}" title="點擊切換">${payLabel}</span>
@@ -1905,10 +1957,11 @@ function renderLedger(){
     <input id="ledgerAddAmt" type="number" placeholder="金額" style="border:none;background:transparent;outline:none;font-size:15px;font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%;padding:9px 0;font-weight:700">
   </div>
   <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-    ${['餐飲','交通','購物','票券','住宿','其他'].map(c=>`<button class="ledger-cat-tab${(ledger.newCat||'餐飲')===c?' active':''}" data-ledgernewcat="${c}" style="font-size:10px;padding:2px 8px">${LEDGER_ICONS[c]} ${c}</button>`).join('')}
+    ${getLedgerCats().map(c=>`<button class="ledger-cat-tab${(ledger.newCat||getLedgerCats()[0]?.id)===c.id?' active':''}" data-ledgernewcat="${c.id}" style="font-size:10px;padding:2px 8px">${c.icon} ${c.id}</button>`).join('')}
   </div>
   <button class="ledger-add-btn" id="ledgerAddBtn" style="width:100%;margin-top:4px">＋ 新增</button>`;
 
+  html+=`<button id="packAddSectionBtn" style="display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:7px 14px;color:var(--muted);font-size:12px;cursor:pointer;width:100%;font-family:'Noto Sans TC',sans-serif;margin-top:4px">＋ 新增分類</button>`;
   body.innerHTML=html;
 
   // ── bind events ──
@@ -2099,6 +2152,93 @@ document.getElementById('resetModalOverlay').addEventListener('click',e=>{
     document.getElementById('resetModalOverlay').classList.add('hidden');
 });
 
+
+// ── SETTINGS PANEL ──
+function openSettings(){
+  renderDayCatsEditor();
+  renderLedgerCatsEditor();
+  document.getElementById('settingsModalOverlay').classList.remove('hidden');
+}
+function renderDayCatsEditor(){
+  const editor=document.getElementById('dayCatsEditor'); if(!editor)return;
+  const cats=getDayCats();
+  editor.innerHTML=cats.map((c,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#f5f3ef;border-radius:8px;padding:6px 10px">
+      <input value="${escA(c.label)}" data-editdaycat="${c.id}" placeholder="類別名稱"
+        style="flex:1;border:none;background:transparent;outline:none;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text)">
+      <input type="color" value="${c.color||'#888'}" data-editdaycatcolor="${c.id}"
+        style="width:28px;height:28px;border:none;border-radius:5px;cursor:pointer;padding:0;background:none">
+      <button data-deldaycat="${c.id}" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:13px;padding:2px 5px;border-radius:4px"
+        ${cats.length<=1?'disabled':''}>✕</button>
+    </div>`).join('');
+  editor.querySelectorAll('[data-editdaycat]').forEach(input=>input.addEventListener('change',()=>{
+    const c=getDayCats().find(x=>x.id===input.dataset.editdaycat);
+    if(c){c.label=input.value;scheduleSave();render();}
+  }));
+  editor.querySelectorAll('[data-editdaycatcolor]').forEach(input=>input.addEventListener('input',()=>{
+    const c=getDayCats().find(x=>x.id===input.dataset.editdaycatcolor);
+    if(c){c.color=input.value;scheduleSave();render();}
+  }));
+  editor.querySelectorAll('[data-deldaycat]').forEach(btn=>btn.addEventListener('click',()=>{
+    if(!DATA.meta)return;
+    if(getDayCats().length<=1){toast('至少保留一個類別');return;}
+    DATA.meta.dayCats=getDayCats().filter(x=>x.id!==btn.dataset.deldaycat);
+    scheduleSave();render();renderDayCatsEditor();
+  }));
+}
+function renderLedgerCatsEditor(){
+  const editor=document.getElementById('ledgerCatsEditor'); if(!editor)return;
+  const cats=getLedgerCats();
+  editor.innerHTML=cats.map(c=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#f5f3ef;border-radius:8px;padding:6px 10px">
+      <input value="${escA(c.icon||'📝')}" data-editledgericon="${c.id}"
+        style="width:28px;text-align:center;border:none;background:transparent;outline:none;font-size:16px">
+      <input value="${escA(c.id)}" data-editledgercat="${c.id}" placeholder="類別名稱"
+        style="flex:1;border:none;background:transparent;outline:none;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text)">
+      <button data-delledgercat="${c.id}" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:13px;padding:2px 5px;border-radius:4px"
+        ${cats.length<=1?'disabled':''}>✕</button>
+    </div>`).join('');
+  editor.querySelectorAll('[data-editledgercat]').forEach(input=>input.addEventListener('change',()=>{
+    const cats=getLedgerCats();
+    const c=cats.find(x=>x.id===input.dataset.editledgercat);
+    if(c&&input.value.trim()){
+      // update all entries with old cat id
+      Object.values(DATA.ledger?.days||{}).forEach(dl=>(dl.entries||[]).forEach(e=>{if(e.cat===c.id)e.cat=input.value.trim();}));
+      c.id=input.value.trim();scheduleSave();
+    }
+  }));
+  editor.querySelectorAll('[data-editledgericon]').forEach(input=>input.addEventListener('change',()=>{
+    const c=getLedgerCats().find(x=>x.id===input.dataset.editledgericon);
+    if(c){c.icon=input.value.trim()||'📝';scheduleSave();}
+  }));
+  editor.querySelectorAll('[data-delledgercat]').forEach(btn=>btn.addEventListener('click',()=>{
+    if(getLedgerCats().length<=1){toast('至少保留一個類別');return;}
+    if(!DATA.meta)return;
+    DATA.meta.ledgerCats=getLedgerCats().filter(x=>x.id!==btn.dataset.delledgercat);
+    scheduleSave();renderLedgerCatsEditor();
+  }));
+}
+document.getElementById('settingsBtn').addEventListener('click',openSettings);
+document.getElementById('settingsCloseBtn').addEventListener('click',()=>{
+  document.getElementById('settingsModalOverlay').classList.add('hidden');
+});
+document.getElementById('settingsModalOverlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('settingsModalOverlay'))
+    document.getElementById('settingsModalOverlay').classList.add('hidden');
+});
+document.getElementById('addDayCatBtn').addEventListener('click',()=>{
+  if(!DATA.meta)DATA.meta={};
+  if(!DATA.meta.dayCats)DATA.meta.dayCats=[];
+  const id='cat'+Date.now();
+  DATA.meta.dayCats.push({id,label:'新類別',color:'#888'});
+  scheduleSave();renderDayCatsEditor();
+});
+document.getElementById('addLedgerCatBtn').addEventListener('click',()=>{
+  if(!DATA.meta)DATA.meta={};
+  if(!DATA.meta.ledgerCats)DATA.meta.ledgerCats=[];
+  DATA.meta.ledgerCats.push({id:'新類別',icon:'📝'});
+  scheduleSave();renderLedgerCatsEditor();
+});
 // ── START ──
 init();
 </script>
