@@ -866,6 +866,7 @@ function render() {
   renderFilterBar();
   applyFilter();
   renderBudgets();
+  setTimeout(()=>{ attachFormatListeners(); applyFieldStyles(); }, 0);
 }
 
 function checkIsToday(day) {
@@ -1751,5 +1752,4 @@ function renderPackList(){
   html+=`<button id="packAddSectionBtn" style="display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:7px 14px;color:var(--muted);font-size:12px;cursor:pointer;width:100%;font-family:'Noto Sans TC',sans-serif;margin-top:4px">＋ 新增分類</button>`;
   body.innerHTML=html;
   body.querySelectorAll('[data-packcheck]').forEach(el=>el.addEventListener('click',()=>{
-    const sec=getPackData().sections.find(s=>s.id===el.dataset.secid);
-    const item=sec
+    const sec=getP
