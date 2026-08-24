@@ -1776,4 +1776,578 @@ function renderPackList(){
     html+=`<div class="pack-section">
       <div class="pack-section-title" style="display:flex;align-items:center;gap:6px">
         <input value="${escA(sec.name)}" data-packsecname="${sec.id}"
-          style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;border:none;background:t
+          style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;border:none;background:transparent;outline:none;font-family:'Noto Sans TC',sans-serif;flex:1;min-width:0">
+        <span style="font-size:10px;font-weight:400;text-transform:none;flex-shrink:0">${sec.items.filter(i=>i.checked).length}/${sec.items.length}</span>
+        <button data-packsecdel="${sec.id}" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:11px;padding:1px 4px;border-radius:4px;flex-shrink:0" title="刪除此分類">✕</button>
+      </div>`;
+    sec.items.forEach(item=>{
+      html+=`<div class="pack-item"><div class="pack-check${item.checked?' checked':''}" data-packcheck="${item.id}" data-secid="${sec.id}"></div><input class="pack-label${item.checked?' checked-text':''}" value="${escA(item.label)}" data-packlabel="${item.id}" data-secid="${sec.id}"><button class="pack-del" data-packdel="${item.id}" data-secid="${sec.id}">✕</button></div>`;
+    });
+    html+=`<div class="pack-add-row"><input class="pack-add-input" id="packinput-${sec.id}" placeholder="新增項目…"><button class="pack-add-btn" data-packadd="${sec.id}">＋</button></div></div>`;
+  });
+  html+=`<button id="packAddSectionBtn" style="display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:7px 14px;color:var(--muted);font-size:12px;cursor:pointer;width:100%;font-family:'Noto Sans TC',sans-serif;margin-top:4px">＋ 新增分類</button>`;
+  body.innerHTML=html;
+  body.querySelectorAll('[data-packcheck]').forEach(el=>el.addEventListener('click',()=>{
+    const sec=getPackData().sections.find(s=>s.id===el.dataset.secid);
+    const item=sec?.items.find(i=>i.id===el.dataset.packcheck);
+    if(item){item.checked=!item.checked;scheduleSave();renderPackList();}
+  }));
+  body.querySelectorAll('[data-packlabel]').forEach(el=>el.addEventListener('change',()=>{
+    const sec=getPackData().sections.find(s=>s.id===el.dataset.secid);
+    const item=sec?.items.find(i=>i.id===el.dataset.packlabel);
+    if(item){item.label=el.value;scheduleSave();}
+  }));
+  body.querySelectorAll('[data-packdel]').forEach(el=>el.addEventListener('click',()=>{
+    const sec=getPackData().sections.find(s=>s.id===el.dataset.secid);
+    if(sec){sec.items=sec.items.filter(i=>i.id!==el.dataset.packdel);scheduleSave();renderPackList();}
+  }));
+  body.querySelectorAll('[data-packadd]').forEach(el=>el.addEventListener('click',()=>{
+    const input=document.getElementById('packinput-'+el.dataset.packadd);
+    const label=input?.value.trim(); if(!label)return;
+    const sec=getPackData().sections.find(s=>s.id===el.dataset.packadd);
+    if(sec){sec.items.push({id:'pi'+Date.now(),label,checked:false});input.value='';scheduleSave();renderPackList();}
+  }));
+  body.querySelectorAll('.pack-add-input').forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter'){const btn=body.querySelector(`[data-packadd="${el.id.replace('packinput-','')}"]`);btn?.click();}}));
+  body.querySelectorAll('[data-packsecname]').forEach(input=>input.addEventListener('change',()=>{
+    const sec=getPackData().sections.find(s=>s.id===input.dataset.packsecname);
+    if(sec){sec.name=input.value;scheduleSave();}
+  }));
+  body.querySelectorAll('[data-packsecdel]').forEach(btn=>btn.addEventListener('click',()=>{
+    const pack=getPackData();
+    if(pack.sections.length<=1){toast('至少需要保留一個分類');return;}
+    pack.sections=pack.sections.filter(s=>s.id!==btn.dataset.packsecdel);
+    scheduleSave();renderPackList();
+  }));
+  body.querySelector('#packAddSectionBtn')?.addEventListener('click',()=>{
+    const pack=getPackData();
+    pack.sections.push({id:'ps'+Date.now(),name:'新分類',items:[]});
+    scheduleSave();renderPackList();
+    // Focus the new section name
+    setTimeout(()=>{
+      const inputs=body.querySelectorAll('[data-packsecname]');
+      inputs[inputs.length-1]?.select();
+    },50);
+  });
+}
+
+// ── TOAST ──
+function toast(msg){const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2400);}
+
+
+
+// Default ledger buckets (can be customised per trip)
+const DEFAULT_BUCKETS = [
+  {id:'b1', label:'現金', currency:'jpy', icon:'💴'},
+  {id:'b2', label:'簽帳卡', currency:'jpy', icon:'💳'},
+  {id:'b3', label:'現金', currency:'twd', icon:'💵'},
+  {id:'b4', label:'簽帳卡', currency:'twd', icon:'💳'},
+];
+
+// ── LEDGER CATEGORIES ──
+function getLedgerCats(){ return DATA.meta?.ledgerCats || [{id:'其他',icon:'📝'}]; }
+function getLedgerIcon(id){ return getLedgerCats().find(c=>c.id===id)?.icon || '📝'; }
+// ── LEDGER ──
+// LEDGER_CATS now dynamic — use getLedgerCats()
+// LEDGER_ICONS now dynamic — use getLedgerIcon(id)
+
+function getLedger(){
+  if(!DATA.ledger) DATA.ledger={days:{},activeDayIdx:0,activeCat:'全部',newCat:'餐飲',newPayBucket:'b1'};
+  if(!DATA.ledger.buckets) DATA.ledger.buckets=JSON.parse(JSON.stringify(DEFAULT_BUCKETS));
+  return DATA.ledger;
+}
+function getBuckets(){ return getLedger().buckets; }
+
+// Get day ledger data (budget + entries) for a given day index
+function getDayLedger(idx){
+  const ledger=getLedger();
+  if(!ledger.days) ledger.days={};
+  if(!ledger.days[idx]) ledger.days[idx]={budgetJpy:null,budgetTwd:null,entries:[]};
+  return ledger.days[idx];
+}
+
+// Calculate carry-over for each day (dynamic buckets)
+function calcDailyLedger(){
+  const rate=getLiveRate();
+  const buckets=getBuckets();
+  const totalDays=DATA.days.length;
+  const results=[];
+  // carry per bucket id
+  const carry={};
+  buckets.forEach(b=>carry[b.id]=0);
+  for(let i=0;i<totalDays;i++){
+    const dl=getDayLedger(i);
+    const entries=dl.entries||[];
+    const dayResult={carries:{...carry}};
+    buckets.forEach(b=>{
+      const isJpy=b.currency==='jpy';
+      const spent=entries.filter(e=>e.bucketId===b.id)
+        .reduce((s,e)=>s+Number(isJpy?(e.amount||0):(e.amountTwd||0)),0);
+      const base=dl['budget_'+b.id]!=null?Number(dl['budget_'+b.id]):null;
+      const eff=base!=null?base+carry[b.id]:null;
+      const newCarry=eff!=null?eff-spent:0;
+      dayResult['spent_'+b.id]=spent;
+      dayResult['eff_'+b.id]=eff;
+      dayResult['carry_'+b.id]=newCarry;
+      dayResult['over_'+b.id]=eff!=null&&newCarry<0;
+      carry[b.id]=newCarry;
+    });
+    results.push(dayResult);
+  }
+  return results;
+}
+
+function renderLedger(){
+  const body=document.getElementById('ledgerBody'); if(!body)return;
+  const ledger=getLedger();
+  const rate=getLiveRate();
+  const activeDayIdx=ledger.activeDayIdx||0;
+  const activeCat=ledger.activeCat||'全部';
+  const dl=getDayLedger(activeDayIdx);
+  const dailyCalc=calcDailyLedger();
+  const dc=dailyCalc[activeDayIdx]||{};
+
+  // ── Day selector tabs ──
+  let dayTabsHtml='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">';
+  DATA.days.forEach((day,i)=>{
+    const d=dailyCalc[i]||{};
+    const dl_i=getDayLedger(i);const hasBudget=getBuckets().some(b=>dl_i['budget_'+b.id]!=null);
+    const over=(d.effJpy!=null&&d.newCarryJpy<0)||(d.effTwd!=null&&d.newCarryTwd<0);
+    const color=over?'#fdecea':hasBudget?'#f0f7ff':'#f0ede8';
+    const textColor=over?'#c84b31':hasBudget?'#2563eb':'#888';
+    const active=i===activeDayIdx;
+    dayTabsHtml+=`<button data-ledgerdayidx="${i}" style="
+      padding:3px 9px;border-radius:16px;border:1.5px solid ${active?'#7c3aed':'transparent'};
+      background:${active?'#7c3aed':color};color:${active?'#fff':textColor};
+      font-size:11px;font-weight:700;cursor:pointer;font-family:'Noto Sans TC',sans-serif;
+      white-space:nowrap;transition:all .15s;
+    ">${day.num}</button>`;
+  });
+  dayTabsHtml+='</div>';
+
+  // ── Hero card for active day ──
+  const dayLabel=DATA.days[activeDayIdx]?.num||('D'+(activeDayIdx+1));
+  const dayTitle=DATA.days[activeDayIdx]?.title||'';
+
+  // carry display
+  // carry display (sum per currency)
+  const buckets=getBuckets();
+  let carryJpy=0,carryTwd=0;
+  buckets.forEach(b=>{if(b.currency==='jpy')carryJpy+=dc.carries?.[b.id]||0;else carryTwd+=dc.carries?.[b.id]||0;});
+  const carryJpyStr=carryJpy>0?`+¥${carryJpy.toLocaleString()}`:carryJpy<0?`-¥${Math.abs(carryJpy).toLocaleString()}`:'';
+  const carryTwdStr=carryTwd>0?`+NT$${carryTwd.toLocaleString()}`:carryTwd<0?`-NT$${Math.abs(carryTwd).toLocaleString()}`:'';
+
+  let heroHtml=`
+  <div class="ledger-hero">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <div style="font-size:18px;font-weight:700">${dayLabel}</div>
+        <div style="font-size:11px;opacity:.75">${dayTitle}</div>
+      </div>
+      ${(carryJpyStr||carryTwdStr)?`<div style="text-align:right;font-size:11px;opacity:.8">
+        ${carryJpyStr?`<div>前日結轉 <span style="font-weight:700">${carryJpyStr} JPY</span></div>`:''}
+        ${carryTwdStr?`<div>前日結轉 <span style="font-weight:700">${carryTwdStr} TWD</span></div>`:''}
+      </div>`:''}
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      ${getBuckets().map(b=>{
+        const isJpy=b.currency==='jpy';
+        const unit=isJpy?'¥':'NT$';
+        const bval=dl['budget_'+b.id]!=null?dl['budget_'+b.id]:'';
+        const spent=dc['spent_'+b.id]||0;
+        const eff=dc['eff_'+b.id];
+        const carry=dc['carry_'+b.id];
+        const isOver=eff!=null&&carry<0;
+        const pct=eff>0?Math.min(100,Math.round(spent/eff*100)):0;
+        return `<div style="background:rgba(255,255,255,.12);border-radius:10px;padding:9px">
+          <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+            <input value="${escA(b.icon||'💴')}" data-bucketicon="${b.id}"
+              style="font-size:13px;width:26px;border:none;background:transparent;outline:none;cursor:pointer;text-align:center">
+            <input value="${escA(b.label)}" data-bucketlabel="${b.id}"
+              style="flex:1;font-size:10px;font-weight:700;opacity:.85;border:none;background:transparent;outline:none;color:#fff;font-family:'Noto Sans TC',sans-serif">
+            <select data-bucketcurr="${b.id}"
+              style="font-size:10px;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:5px;padding:1px 3px;cursor:pointer;outline:none">
+              <option value="jpy" ${isJpy?'selected':''}>¥ JPY</option>
+              <option value="twd" ${!isJpy?'selected':''}>NT$ TWD</option>
+            </select>
+          </div>
+            <button data-deletebucket="${b.id}" style="background:rgba(255,255,255,.15);border:none;color:rgba(255,255,255,.6);border-radius:5px;width:20px;height:20px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0" title="刪除此欄位">✕</button>
+          <input class="ledger-budget-input" type="number" placeholder="未設定"
+            value="${bval}" data-budgetbucket="${b.id}" style="font-size:14px;width:100%">
+          ${eff!=null?`<div style="margin-top:6px">
+            <div class="ledger-bar-wrap"><div class="ledger-bar${isOver?' over':''}" style="width:${pct}%"></div></div>
+            <div style="font-size:10px;opacity:.8;margin-top:2px">${unit}花 ${spent.toLocaleString()} / 有效 ${eff.toLocaleString()}</div>
+            <div style="font-size:11px;font-weight:700;color:${isOver?'#f87171':'#a5f3c0'}">
+              ${isOver?'超支 '+unit+Math.abs(carry).toLocaleString():'剩 '+unit+carry.toLocaleString()}
+            </div>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px">
+      <button data-addbucket style="font-size:11px;background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:7px;padding:4px 10px;cursor:pointer;font-family:'Noto Sans TC',sans-serif">＋ 新增欄位</button>
+    </div>
+  </div>`;
+
+  // ── Category tabs + entries ──
+  const entries=dl.entries||[];
+  const filtered=activeCat==='全部'?entries:entries.filter(e=>e.cat===activeCat);
+
+  let html=dayTabsHtml+heroHtml;
+  html+=`<div class="ledger-cat-tabs">
+    ${['全部',...getLedgerCats().map(c=>c.id)].map(c=>`<button class="ledger-cat-tab${activeCat===c?' active':''}" data-ledgercat="${c}">${c==='全部'?'全部':getLedgerIcon(c)+' '+c}</button>`).join('')}
+  </div>`;
+
+  if(filtered.length===0){
+    html+=`<div class="ledger-empty">今天還沒有記帳紀錄</div>`;
+  }else{
+    html+=`<div>`;
+    filtered.forEach(e=>{
+      const bucket=getBuckets().find(x=>x.id===e.bucketId)||getBuckets()[0];
+      const isJpy=(e.currency||bucket?.currency||'jpy')==='jpy';
+      const amt=isJpy?(e.amount||''):(e.amountTwd||'');
+      const unit=isJpy?'¥':'NT$';
+      const payLabel=bucket?`${bucket.icon} ${bucket.label}`:'';
+      const payColor='#7c3aed';
+      html+=`<div class="ledger-entry" style="flex-wrap:wrap;gap:5px;align-items:center">
+        <span class="ledger-entry-icon">${getLedgerIcon(e.cat)}</span>
+        <input class="ledger-entry-name" value="${escA(e.name)}" data-ledgername="${e.id}" placeholder="支出名稱">
+        <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;background:${payColor}22;color:${payColor};cursor:pointer;flex-shrink:0"
+          data-togglepay="${e.id}" title="點擊切換">${payLabel}</span>
+        <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;background:#7c3aed22;color:#7c3aed;cursor:pointer;flex-shrink:0"
+          data-togglecurr="${e.id}" title="點擊切換">${unit}</span>
+        <input class="ledger-entry-amount" type="number" value="${amt}" data-ledgeramtfield="${e.id}" placeholder="金額" style="width:80px;margin-left:auto">
+        <button class="ledger-entry-del" data-ledgerdel="${e.id}">✕</button>
+      </div>`;
+    });
+    const subJpy=filtered.reduce((s,e)=>s+(e.amount!=null?Number(e.amount):(e.amountTwd!=null?Math.round(Number(e.amountTwd)/rate):0)),0);
+    const subTwd=filtered.reduce((s,e)=>s+(e.amountTwd!=null?Number(e.amountTwd):(e.amount!=null?Math.round(Number(e.amount)*rate):0)),0);
+    html+=`<div style="text-align:right;font-size:12px;font-weight:700;color:#7c3aed;padding:8px 4px 0">
+      小計 ¥${subJpy.toLocaleString()} / NT$${subTwd.toLocaleString()}
+    </div></div>`;
+  }
+
+  html+=`
+  <div class="ledger-section-title">新增支出</div>
+  <input class="ledger-add-input" id="ledgerAddName" placeholder="支出名稱" style="width:100%;margin-bottom:6px">
+  <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+    ${getBuckets().map(b=>{
+      const active=(ledger.newPayBucket||'b1')===b.id;
+      return `<button class="ledger-cat-tab" data-addpaybucket="${b.id}"
+        style="background:${active?'#7c3aed':'#f0ede8'};color:${active?'#fff':'#888'}">${b.icon} ${b.label} (${b.currency==='jpy'?'¥':'NT$'})</button>`;
+    }).join('')}
+  </div>
+  <div style="display:flex;align-items:center;gap:4px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:0 10px;margin-bottom:6px">
+    <span style="font-size:11px;color:var(--muted);white-space:nowrap">${(()=>{const b=getBuckets().find(x=>x.id===(ledger.newPayBucket||'b1'));return b?.currency==='jpy'?'¥':'NT$';})()}</span>
+    <input id="ledgerAddAmt" type="number" placeholder="金額" style="border:none;background:transparent;outline:none;font-size:15px;font-family:'Noto Sans TC',sans-serif;color:var(--text);width:100%;padding:9px 0;font-weight:700">
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+    ${getLedgerCats().map(c=>`<button class="ledger-cat-tab${(ledger.newCat||getLedgerCats()[0]?.id)===c.id?' active':''}" data-ledgernewcat="${c.id}" style="font-size:10px;padding:2px 8px">${c.icon} ${c.id}</button>`).join('')}
+  </div>
+  <button class="ledger-add-btn" id="ledgerAddBtn" style="width:100%;margin-top:4px">＋ 新增</button>`;
+
+  html+=`<button id="packAddSectionBtn" style="display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed #d8d4cc;border-radius:8px;padding:7px 14px;color:var(--muted);font-size:12px;cursor:pointer;width:100%;font-family:'Noto Sans TC',sans-serif;margin-top:4px">＋ 新增分類</button>`;
+  body.innerHTML=html;
+
+  // ── bind events ──
+  body.querySelectorAll('[data-ledgerdayidx]').forEach(btn=>btn.addEventListener('click',()=>{
+    getLedger().activeDayIdx=Number(btn.dataset.ledgerdayidx); renderLedger();
+  }));
+  // budget inputs (dynamic keys)
+  body.querySelectorAll('[data-budgetbucket]').forEach(input=>input.addEventListener('change',()=>{
+    const v=input.value===''?null:Number(input.value);
+    getDayLedger(activeDayIdx)['budget_'+input.dataset.budgetbucket]=v; scheduleSave(); renderLedger();
+  }));
+  // bucket label / icon / currency edit
+  body.querySelectorAll('[data-bucketlabel]').forEach(input=>input.addEventListener('change',()=>{
+    const b=getBuckets().find(x=>x.id===input.dataset.bucketlabel);
+    if(b){b.label=input.value;scheduleSave();}
+  }));
+  body.querySelectorAll('[data-bucketicon]').forEach(input=>input.addEventListener('change',()=>{
+    const b=getBuckets().find(x=>x.id===input.dataset.bucketicon);
+    if(b){b.icon=input.value.trim()||'💴';scheduleSave();}
+  }));
+  body.querySelectorAll('[data-bucketcurr]').forEach(sel=>sel.addEventListener('change',()=>{
+    const b=getBuckets().find(x=>x.id===sel.dataset.bucketcurr);
+    if(b){b.currency=sel.value;scheduleSave();renderLedger();}
+  }));
+  // add new bucket
+  body.querySelector('[data-addbucket]')?.addEventListener('click',()=>{
+    const id='b'+Date.now();
+    getBuckets().push({id,label:'自訂',currency:'jpy',icon:'💴'});
+    scheduleSave();renderLedger();
+  });
+  body.querySelectorAll('[data-deletebucket]').forEach(btn=>btn.addEventListener('click',()=>{
+    const bkts=getBuckets();
+    if(bkts.length<=1){toast('至少需要保留一個預算欄位');return;}
+    const id=btn.dataset.deletebucket;
+    const idx=bkts.findIndex(x=>x.id===id); if(idx===-1)return;
+    bkts.splice(idx,1);
+    // remove budget entries for this bucket from all days
+    Object.values(getLedger().days||{}).forEach(dl=>{
+      delete dl['budget_'+id];
+      if(dl.entries) dl.entries.forEach(e=>{if(e.bucketId===id)e.bucketId=bkts[0]?.id;});
+    });
+    scheduleSave();renderLedger();
+  }));
+  body.querySelectorAll('[data-ledgercat]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().activeCat=btn.dataset.ledgercat;renderLedger();}));
+  body.querySelectorAll('[data-ledgernewcat]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().newCat=btn.dataset.ledgernewcat;renderLedger();}));
+  body.querySelectorAll('[data-addpaybucket]').forEach(btn=>btn.addEventListener('click',()=>{getLedger().newPayBucket=btn.dataset.addpaybucket;renderLedger();}));
+  body.querySelectorAll('[data-ledgername]').forEach(input=>input.addEventListener('change',()=>{
+    const e=getDayLedger(activeDayIdx).entries.find(x=>x.id===input.dataset.ledgername);
+    if(e){e.name=input.value;scheduleSave();}
+  }));
+  // bucket badge on entry — click to cycle to next bucket
+  body.querySelectorAll('[data-togglepay]').forEach(el=>el.addEventListener('click',()=>{
+    const dl=getDayLedger(activeDayIdx);
+    const e=dl.entries.find(x=>x.id===el.dataset.togglepay); if(!e)return;
+    const bkts=getBuckets();
+    const idx=bkts.findIndex(x=>x.id===e.bucketId);
+    const next=bkts[(idx+1)%bkts.length];
+    e.bucketId=next.id; e.currency=next.currency;
+    scheduleSave();renderLedger();
+  }));
+  // amount field on entry
+  body.querySelectorAll('[data-ledgeramtfield]').forEach(input=>input.addEventListener('change',()=>{
+    const dl=getDayLedger(activeDayIdx);
+    const e=dl.entries.find(x=>x.id===input.dataset.ledgeramtfield); if(!e)return;
+    const v=input.value===''?null:Number(input.value);
+    if((e.currency||'jpy')==='jpy'){e.amount=v;e.amountTwd=v!=null?Math.round(v*rate):null;}
+    else{e.amountTwd=v;e.amount=v!=null?Math.round(v/rate):null;}
+    scheduleSave();renderLedger();
+  }));
+  body.querySelectorAll('[data-ledgerdel]').forEach(btn=>btn.addEventListener('click',()=>{
+    const dl=getDayLedger(activeDayIdx);
+    dl.entries=dl.entries.filter(e=>e.id!==btn.dataset.ledgerdel);
+    scheduleSave();renderLedger();
+  }));
+  body.querySelector('#ledgerAddBtn')?.addEventListener('click',()=>{
+    const name=body.querySelector('#ledgerAddName')?.value.trim();
+    const amt=body.querySelector('#ledgerAddAmt')?.value;
+    if(!name&&!amt)return;
+    const ledger=getLedger(); const dl=getDayLedger(activeDayIdx);
+    if(!dl.entries) dl.entries=[];
+    const bucket=getBuckets().find(x=>x.id===(ledger.newPayBucket||'b1'))||getBuckets()[0];
+    const isJpy=bucket.currency==='jpy';
+    const v=amt?Number(amt):null;
+    dl.entries.push({
+      id:'le'+Date.now(), name:name||'支出',
+      amount:isJpy?v:(v!=null?Math.round(v/rate):null),
+      amountTwd:isJpy?(v!=null?Math.round(v*rate):null):v,
+      cat:ledger.newCat||'餐飲',
+      bucketId:bucket.id,
+      currency:bucket.currency,
+    });
+    body.querySelector('#ledgerAddName').value='';
+    body.querySelector('#ledgerAddAmt').value='';
+    scheduleSave();renderLedger();
+  });
+  ['#ledgerAddName','#ledgerAddAmt'].forEach(sel=>{
+    body.querySelector(sel)?.addEventListener('keydown',e=>{if(e.key==='Enter')body.querySelector('#ledgerAddBtn')?.click();});
+  });
+}
+document.getElementById('ledgerBtn').addEventListener('click',()=>togglePanel('ledgerPanel'));
+document.getElementById('closeLedgerBtn').addEventListener('click',()=>closeAllPanels());
+
+// ── DRAG AUTO-SCROLL ──
+let autoScrollRAF=null;
+function startAutoScroll(e){
+  const ZONE=100, SPEED=12;
+  const y=e.clientY;
+  const vh=window.innerHeight;
+  cancelAnimationFrame(autoScrollRAF);
+  function step(){
+    if(y<ZONE) window.scrollBy(0,-SPEED*(1-(y/ZONE)));
+    else if(y>vh-ZONE) window.scrollBy(0,SPEED*(1-((vh-y)/ZONE)));
+    autoScrollRAF=requestAnimationFrame(step);
+  }
+  autoScrollRAF=requestAnimationFrame(step);
+}
+function stopAutoScroll(){ cancelAnimationFrame(autoScrollRAF); autoScrollRAF=null; }
+document.addEventListener('dragover',e=>startAutoScroll(e));
+document.addEventListener('dragend',stopAutoScroll);
+document.addEventListener('drop',stopAutoScroll);
+
+
+// ── AUTO SORT BY DATE ──
+function parseJpDate(str) {
+  if (!str) return null;
+  // Handles formats like: 5月8日（五）, 5/8, 2026-05-08, May 8
+  const m1 = str.match(/(\d+)月(\d+)日/);
+  if (m1) return parseInt(m1[1]) * 100 + parseInt(m1[2]);
+  const m2 = str.match(/(\d+)[\/\-](\d+)/);
+  if (m2) return parseInt(m2[1]) * 100 + parseInt(m2[2]);
+  return null;
+}
+
+function sortDaysByDate() {
+  const hasDates = DATA.days.filter(d => parseJpDate(d.date) !== null);
+  if (hasDates.length < 2) return; // not enough dates to sort
+  const sorted = [...DATA.days].sort((a, b) => {
+    const da = parseJpDate(a.date), db = parseJpDate(b.date);
+    if (da === null && db === null) return 0;
+    if (da === null) return 1;
+    if (db === null) return -1;
+    return da - db;
+  });
+  // Only re-render if order actually changed
+  const changed = sorted.some((d, i) => d.id !== DATA.days[i].id);
+  if (changed) {
+    DATA.days = sorted;
+    render();
+    toast('已依日期重新排序');
+  }
+}
+
+
+// ── RESET ──
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  document.getElementById('resetModalOverlay').classList.remove('hidden');
+});
+document.getElementById('resetCancelBtn').addEventListener('click',()=>{
+  document.getElementById('resetModalOverlay').classList.add('hidden');
+});
+document.getElementById('resetConfirmBtn').addEventListener('click',async()=>{
+  document.getElementById('resetModalOverlay').classList.add('hidden');
+  // Pause snapshot listener to prevent remote data overwriting reset
+  if(unsubscribe){ unsubscribe(); unsubscribe=null; }
+  // Keep meta (title, cover, rates) but wipe everything else
+  const savedMeta = JSON.parse(JSON.stringify(DATA.meta||{}));
+  DATA = {
+    meta: savedMeta,
+    days: [],
+    ledger: {days:{},activeDayIdx:0,activeCat:'全部',newCat:'餐飲',newPayBucket:'b1',buckets:JSON.parse(JSON.stringify(DEFAULT_BUCKETS))},
+    packing: null,
+  };
+  // Save to Firestore directly (bypass scheduleSave debounce)
+  setSyncStatus('saving');
+  try {
+    await setDoc(doc(db,'trips',TRIP_DOC_ID), DATA);
+    setSyncStatus('synced');
+  } catch(e) { setSyncStatus('error'); }
+  render();
+  applyCover();
+  renderBudgets();
+  toast('✓ 已清空全部資料，可以開始新旅程！');
+  // Re-subscribe after short delay
+  setTimeout(()=>subscribeToChanges(), 500);
+});
+document.getElementById('resetModalOverlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('resetModalOverlay'))
+    document.getElementById('resetModalOverlay').classList.add('hidden');
+});
+
+
+// ── SETTINGS PANEL ──
+function openSettings(){
+  renderDayCatsEditor();
+  renderLedgerCatsEditor();
+  document.getElementById('settingsModalOverlay').classList.remove('hidden');
+}
+function renderDayCatsEditor(){
+  const editor=document.getElementById('dayCatsEditor'); if(!editor)return;
+  const cats=getDayCats();
+  editor.innerHTML=cats.map((c,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#f5f3ef;border-radius:8px;padding:6px 10px">
+      <input value="${escA(c.label)}" data-editdaycat="${c.id}" placeholder="類別名稱"
+        style="flex:1;border:none;background:transparent;outline:none;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text)">
+      <input type="color" value="${c.color||'#888'}" data-editdaycatcolor="${c.id}"
+        style="width:28px;height:28px;border:none;border-radius:5px;cursor:pointer;padding:0;background:none">
+      <button data-deldaycat="${c.id}" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:13px;padding:2px 5px;border-radius:4px"
+        ${cats.length<=1?'disabled':''}>✕</button>
+    </div>`).join('');
+  editor.querySelectorAll('[data-editdaycat]').forEach(input=>input.addEventListener('change',()=>{
+    const c=getDayCats().find(x=>x.id===input.dataset.editdaycat);
+    if(c){c.label=input.value;scheduleSave();render();}
+  }));
+  editor.querySelectorAll('[data-editdaycatcolor]').forEach(input=>input.addEventListener('input',()=>{
+    const c=getDayCats().find(x=>x.id===input.dataset.editdaycatcolor);
+    if(c){c.color=input.value;scheduleSave();render();}
+  }));
+  editor.querySelectorAll('[data-deldaycat]').forEach(btn=>btn.addEventListener('click',()=>{
+    if(!DATA.meta)return;
+    if(getDayCats().length<=1){toast('至少保留一個類別');return;}
+    DATA.meta.dayCats=getDayCats().filter(x=>x.id!==btn.dataset.deldaycat);
+    scheduleSave();render();renderDayCatsEditor();
+  }));
+}
+function renderLedgerCatsEditor(){
+  const editor=document.getElementById('ledgerCatsEditor'); if(!editor)return;
+  const cats=getLedgerCats();
+  editor.innerHTML=cats.map(c=>`
+    <div style="display:flex;align-items:center;gap:8px;background:#f5f3ef;border-radius:8px;padding:6px 10px">
+      <input value="${escA(c.icon||'📝')}" data-editledgericon="${c.id}"
+        style="width:28px;text-align:center;border:none;background:transparent;outline:none;font-size:16px">
+      <input value="${escA(c.id)}" data-editledgercat="${c.id}" placeholder="類別名稱"
+        style="flex:1;border:none;background:transparent;outline:none;font-size:13px;font-family:'Noto Sans TC',sans-serif;color:var(--text)">
+      <button data-delledgercat="${c.id}" style="background:none;border:none;cursor:pointer;color:#ccc;font-size:13px;padding:2px 5px;border-radius:4px"
+        ${cats.length<=1?'disabled':''}>✕</button>
+    </div>`).join('');
+  editor.querySelectorAll('[data-editledgercat]').forEach(input=>input.addEventListener('change',()=>{
+    const cats=getLedgerCats();
+    const c=cats.find(x=>x.id===input.dataset.editledgercat);
+    if(c&&input.value.trim()){
+      // update all entries with old cat id
+      Object.values(DATA.ledger?.days||{}).forEach(dl=>(dl.entries||[]).forEach(e=>{if(e.cat===c.id)e.cat=input.value.trim();}));
+      c.id=input.value.trim();scheduleSave();
+    }
+  }));
+  editor.querySelectorAll('[data-editledgericon]').forEach(input=>input.addEventListener('change',()=>{
+    const c=getLedgerCats().find(x=>x.id===input.dataset.editledgericon);
+    if(c){c.icon=input.value.trim()||'📝';scheduleSave();}
+  }));
+  editor.querySelectorAll('[data-delledgercat]').forEach(btn=>btn.addEventListener('click',()=>{
+    if(getLedgerCats().length<=1){toast('至少保留一個類別');return;}
+    if(!DATA.meta)return;
+    DATA.meta.ledgerCats=getLedgerCats().filter(x=>x.id!==btn.dataset.delledgercat);
+    scheduleSave();renderLedgerCatsEditor();
+  }));
+}
+document.getElementById('settingsBtn').addEventListener('click',openSettings);
+document.getElementById('settingsCloseBtn').addEventListener('click',()=>{
+  document.getElementById('settingsModalOverlay').classList.add('hidden');
+});
+document.getElementById('settingsModalOverlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('settingsModalOverlay'))
+    document.getElementById('settingsModalOverlay').classList.add('hidden');
+});
+document.getElementById('addDayCatBtn').addEventListener('click',()=>{
+  if(!DATA.meta)DATA.meta={};
+  if(!DATA.meta.dayCats)DATA.meta.dayCats=[];
+  const id='cat'+Date.now();
+  DATA.meta.dayCats.push({id,label:'新類別',color:'#888'});
+  scheduleSave();renderDayCatsEditor();
+});
+document.getElementById('addLedgerCatBtn').addEventListener('click',()=>{
+  if(!DATA.meta)DATA.meta={};
+  if(!DATA.meta.ledgerCats)DATA.meta.ledgerCats=[];
+  DATA.meta.ledgerCats.push({id:'新類別',icon:'📝'});
+  scheduleSave();renderLedgerCatsEditor();
+});
+
+
+// ── FONT SCALE (safe: runs after DOM ready via init()) ──
+(function(){
+  let scale = parseFloat(localStorage.getItem('fs')||'1');
+  function apply(){
+    document.documentElement.style.fontSize = (scale*16)+'px';
+    const v=document.getElementById('fontVal');
+    if(v) v.textContent=Math.round(scale*100)+'%';
+    localStorage.setItem('fs',scale);
+  }
+  window.addEventListener('DOMContentLoaded',()=>{
+    apply();
+    document.getElementById('fontInc')?.addEventListener('click',()=>{
+      if(scale<1.8){scale=Math.round((scale+0.1)*10)/10;apply();}
+    });
+    document.getElementById('fontDec')?.addEventListener('click',()=>{
+      if(scale>0.7){scale=Math.round((scale-0.1)*10)/10;apply();}
+    });
+  });
+})();
+// ── START ──
+init();
+
+</script>
+</body>
+</html>
