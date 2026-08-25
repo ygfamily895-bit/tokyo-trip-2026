@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>東京獨旅 2026</title>
+<title>行程規劃</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=DM+Serif+Display&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -400,6 +400,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 </head>
 <body>
 
+
 <div id="loading-screen">
   <div class="spinner"></div>
   <span style="font-size:13px;color:var(--muted)">載入行程中…</span>
@@ -597,9 +598,23 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 
 <div class="toast" id="toast"></div>
 
+
+<script>
+// Failsafe: loading screen always disappears
+setTimeout(function(){
+  var ls = document.getElementById('loading-screen');
+  var app = document.getElementById('app');
+  if(ls && ls.style.display !== 'none'){
+    ls.style.display = 'none';
+    if(app) app.style.display = 'block';
+  }
+}, 5000);
+</script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyAkrAu5xfFFmziSfs2zDyEH3iz76XP6se0",
@@ -743,13 +758,18 @@ function catLabel(id){ return getDayCats().find(c=>c.id===id)?.label || id; }
 function catColor(id){ return getDayCats().find(c=>c.id===id)?.color || '#bbb'; }
 // ── INIT ──
 async function init() {
+  function showApp(){
+    const ls = document.getElementById('loading-screen');
+    const ap = document.getElementById('app');
+    if(ls) ls.style.display = 'none';
+    if(ap) ap.style.display = 'block';
+  }
   try {
     const ref = doc(db, 'trips', TRIP_DOC_ID);
     const snap = await getDoc(ref);
     if (snap.exists()) {
       DATA = snap.data();
       if (!DATA.meta) DATA.meta = {};
-      // Backfill any missing meta fields from DEFAULT_DATA
       const dm = DEFAULT_DATA.meta;
       if (!DATA.meta.dayCats) DATA.meta.dayCats = JSON.parse(JSON.stringify(dm.dayCats));
       if (!DATA.meta.ledgerCats) DATA.meta.ledgerCats = JSON.parse(JSON.stringify(dm.ledgerCats));
@@ -757,14 +777,13 @@ async function init() {
     } else {
       await setDoc(ref, DATA);
     }
-  } catch(e) { console.warn('Firestore load failed, using default:', e); }
-  try {
-    render();
-    applyCover();
-  } catch(e) { console.error('render error:', e); }
-  subscribeToChanges();
-  document.getElementById('loading-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  } catch(e) {
+    console.warn('Firestore error, using defaults:', e);
+  }
+  try { render(); } catch(e) { console.error('render error:', e); }
+  try { applyCover(); } catch(e) { console.error('applyCover error:', e); }
+  try { subscribeToChanges(); } catch(e) { console.error('subscribe error:', e); }
+  showApp();
 }
 
 function subscribeToChanges() {
@@ -877,6 +896,15 @@ function calcDayBudgetTwd(day) {
 function calcTripBudgetJpy() { return DATA.days.reduce((s,d)=>s+calcDayBudgetJpy(d),0); }
 function calcTripBudgetTwd() { return DATA.days.reduce((s,d)=>s+calcDayBudgetTwd(d),0); }
 
+function getBudgetDisplay(){
+  // meta.budgetCurr1 = primary currency (default JPY), meta.budgetCurr2 = secondary (default TWD)
+  return {
+    curr1: DATA.meta?.budgetCurr1 || 'JPY',
+    curr2: DATA.meta?.budgetCurr2 || 'TWD',
+  };
+}
+function getCurrSym(code){ return STOP_CURRENCIES.find(c=>c.code===code)?.symbol || code; }
+
 function renderBudgets() {
   const jpy = calcTripBudgetJpy(), twd = calcTripBudgetTwd();
   const bar = document.getElementById('tripBudgetBar');
@@ -884,38 +912,62 @@ function renderBudgets() {
   if (jpy === 0 && twd === 0) { bar.style.display='none'; return; }
   bar.style.display = 'flex';
   const rate = getLiveRate();
-  bar.innerHTML = `<span class="trip-budget-label">旅程總花費</span>
-    <span class="trip-budget-amount">¥${jpy.toLocaleString()}</span>
-    <span style="font-size:13px;color:#1a73e8;font-weight:700">NT$${twd.toLocaleString()}</span>
-    <span style="margin-left:auto;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px">
-      匯率 1 JPY =
-      <input id="inlineRateInput" type="number" value="${rate.toFixed(3)}" step="0.001" min="0.001"
-        style="width:54px;border:1px dashed #ccc;border-radius:5px;padding:1px 5px;font-size:11px;
+  const {curr1, curr2} = getBudgetDisplay();
+  const sym1 = getCurrSym(curr1), sym2 = getCurrSym(curr2);
+
+  // Calculate amounts in chosen currencies
+  // curr1 is "primary" (replaces JPY display), curr2 is "secondary" (replaces TWD display)
+  // We store in JPY+TWD internally; convert to display currencies if different
+  const amt1 = curr1 === 'JPY' ? jpy : curr1 === 'TWD' ? twd : Math.round(jpy * (DATA.meta?.['rate_JPY_'+curr1] || 1));
+  const amt2 = curr2 === 'TWD' ? twd : curr2 === 'JPY' ? jpy : Math.round(twd * (DATA.meta?.['rate_TWD_'+curr2] || 1));
+
+  const currOptions1 = STOP_CURRENCIES.map(c=>`<option value="${c.code}"${curr1===c.code?' selected':''}>${c.symbol} ${c.code}</option>`).join('');
+  const currOptions2 = STOP_CURRENCIES.map(c=>`<option value="${c.code}"${curr2===c.code?' selected':''}>${c.symbol} ${c.code}</option>`).join('');
+
+  bar.innerHTML = `
+    <span class="trip-budget-label">旅程總花費</span>
+    <select id="budgetCurr1Sel" style="font-size:11px;border:none;background:transparent;outline:none;cursor:pointer;font-weight:700;color:var(--text);font-family:'Noto Sans TC',sans-serif">${currOptions1}</select>
+    <span class="trip-budget-amount">${sym1}${amt1.toLocaleString()}</span>
+    <select id="budgetCurr2Sel" style="font-size:11px;border:none;background:transparent;outline:none;cursor:pointer;font-weight:700;color:#1a73e8;font-family:'Noto Sans TC',sans-serif">${currOptions2}</select>
+    <span style="font-size:13px;color:#1a73e8;font-weight:700">${sym2}${amt2.toLocaleString()}</span>
+    <span style="margin-left:auto;font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+      <span id="inlineRateLabel">匯率 1 ${curr1} =</span>
+      <input id="inlineRateInput" type="number" value="${rate.toFixed(4)}" step="0.0001" min="0.0001"
+        style="width:60px;border:1px dashed #ccc;border-radius:5px;padding:1px 5px;font-size:11px;
                text-align:center;background:transparent;outline:none;color:var(--muted);font-family:'Noto Sans TC',sans-serif">
-      TWD
+      <span id="inlineRateToCurr">${curr2}</span>
       <span id="inlineRateSaved" style="color:#4ade80;font-size:10px;opacity:0;transition:opacity .4s">✓</span>
     </span>`;
+
+  // Currency 1 selector
+  document.getElementById('budgetCurr1Sel').addEventListener('change', e => {
+    if (!DATA.meta) DATA.meta = {};
+    DATA.meta.budgetCurr1 = e.target.value;
+    scheduleSave(); renderBudgets();
+  });
+  // Currency 2 selector
+  document.getElementById('budgetCurr2Sel').addEventListener('change', e => {
+    if (!DATA.meta) DATA.meta = {};
+    DATA.meta.budgetCurr2 = e.target.value;
+    scheduleSave(); renderBudgets();
+  });
+  // Rate input
   const input = document.getElementById('inlineRateInput');
   input.addEventListener('change', () => {
     const val = parseFloat(input.value);
-    if (!val || val <= 0) { input.value = rate.toFixed(3); return; }
+    if (!val || val <= 0) { input.value = rate.toFixed(4); return; }
     if (!DATA.meta) DATA.meta = {};
     DATA.meta.customRate = val;
-    // sync to currency panel if open
+    DATA.meta.jpyTwdRate = val;
     const ri = document.getElementById('rateInput');
     if (ri) ri.value = val;
-    // recalculate all budgetTwd from budgetJpy using new rate
     DATA.days.forEach(day => {
       (day.stops||[]).forEach(s => {
-        if (s.budget != null) {
-          s.budgetTwd = Math.round(Number(s.budget) * val);
-        } else if (s.budgetTwd != null) {
-          s.budget = Math.round(Number(s.budgetTwd) / val);
-        }
+        if (s.budget != null) s.budgetTwd = Math.round(Number(s.budget) * val);
+        else if (s.budgetTwd != null) s.budget = Math.round(Number(s.budgetTwd) / val);
       });
     });
-    scheduleSave();
-    render();
+    scheduleSave(); render();
     const saved = document.getElementById('inlineRateSaved');
     if (saved) { saved.style.opacity='1'; setTimeout(()=>saved.style.opacity='0', 1500); }
   });
@@ -927,7 +979,11 @@ function renderDay(day) {
   const fields = (day.fields||[]).map(f=>renderField(f,day.id)).join('');
   const isToday = checkIsToday(day);
   const jpy = calcDayBudgetJpy(day), twd = calcDayBudgetTwd(day);
-  const budgetTotal = (jpy>0||twd>0) ? `<div class="day-budget-total">當日小計 <strong>¥${jpy.toLocaleString()}</strong><span style="color:#1a73e8;font-weight:700;font-size:12px">NT$${twd.toLocaleString()}</span></div>` : '';
+  const {curr1:dc1, curr2:dc2} = getBudgetDisplay();
+  const dsym1 = getCurrSym(dc1), dsym2 = getCurrSym(dc2);
+  const damt1 = dc1==='JPY'?jpy:dc1==='TWD'?twd:Math.round(jpy*(DATA.meta?.['rate_JPY_'+dc1]||1));
+  const damt2 = dc2==='TWD'?twd:dc2==='JPY'?jpy:Math.round(twd*(DATA.meta?.['rate_TWD_'+dc2]||1));
+  const budgetTotal = (jpy>0||twd>0) ? `<div class="day-budget-total">當日小計 <strong>${dsym1}${damt1.toLocaleString()}</strong><span style="color:#1a73e8;font-weight:700;font-size:12px">${dsym2}${damt2.toLocaleString()}</span></div>` : '';
   const todayBadge = isToday ? '<span class="today-badge">📍 今天</span>' : '';
   const catClr=catColor(day.cat);
   return `<div class="day-card${isToday?' is-today':''}" data-cat="${day.cat}" data-id="${day.id}" style="border-left-color:${catClr}">
@@ -2291,6 +2347,7 @@ document.getElementById('addLedgerCatBtn').addEventListener('click',()=>{
 })();
 // ── START ──
 init();
+
 </script>
 </body>
 </html>
