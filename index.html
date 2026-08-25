@@ -390,6 +390,41 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   display:inline-flex;align-items:center;justify-content:center;}
 .font-scale-btn:hover{background:rgba(255,255,255,.25)}
 .font-scale-val{font-size:11px;color:rgba(255,255,255,.75);min-width:32px;text-align:center}
+
+/* ── FORMAT TOOLBAR ── */
+.fmt-bar{
+  position:fixed;z-index:9500;
+  background:#1e1d1a;border-radius:10px;
+  box-shadow:0 4px 20px rgba(0,0,0,.35);
+  padding:5px 8px;display:none;
+  align-items:center;gap:3px;
+  transform:translateY(-8px);transition:opacity .15s,transform .15s;
+  opacity:0;pointer-events:none;
+}
+.fmt-bar.show{display:flex;opacity:1;transform:translateY(0);pointer-events:all}
+.fmt-b{
+  background:transparent;border:none;cursor:pointer;
+  color:#e0ddd8;border-radius:6px;
+  width:28px;height:28px;font-size:13px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .1s;font-family:'Noto Sans TC',sans-serif;
+}
+.fmt-b:hover{background:rgba(255,255,255,.15)}
+.fmt-b.on{background:rgba(255,255,255,.25);color:#fff}
+.fmt-sep{width:1px;height:16px;background:rgba(255,255,255,.2);flex-shrink:0;margin:0 2px}
+.fmt-color-dot{
+  width:18px;height:18px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.3);cursor:pointer;
+  flex-shrink:0;transition:transform .1s;
+}
+.fmt-color-dot:hover{transform:scale(1.25);border-color:#fff}
+.fmt-color-dot.active-color{border-color:#fff;transform:scale(1.15)}
+input.fmt-custom-color{
+  width:18px;height:18px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.3);
+  cursor:pointer;padding:0;background:none;
+  -webkit-appearance:none;
+}
 /* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;background:#1e1d1a;color:#fff;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
 .toast.show{transform:translateY(0);opacity:1}
@@ -527,6 +562,22 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   <div class="slide-panel-body" id="ledgerBody"></div>
 </div>
 
+
+<!-- Format Toolbar -->
+<div id="fmtBar" class="fmt-bar">
+  <button class="fmt-b" id="fmtBold" title="粗體"><strong>B</strong></button>
+  <button class="fmt-b" id="fmtItalic" title="斜體"><em>I</em></button>
+  <button class="fmt-b" id="fmtUnderline" title="底線"><u>U</u></button>
+  <div class="fmt-sep"></div>
+  <div class="fmt-color-dot" data-c="#1e1d1a" style="background:#1e1d1a" title="黑"></div>
+  <div class="fmt-color-dot" data-c="#c84b31" style="background:#c84b31" title="紅"></div>
+  <div class="fmt-color-dot" data-c="#2563eb" style="background:#2563eb" title="藍"></div>
+  <div class="fmt-color-dot" data-c="#16a34a" style="background:#16a34a" title="綠"></div>
+  <div class="fmt-color-dot" data-c="#b8760a" style="background:#b8760a" title="橙"></div>
+  <div class="fmt-color-dot" data-c="#7c3aed" style="background:#7c3aed" title="紫"></div>
+  <div class="fmt-color-dot" data-c="#888" style="background:#888" title="灰"></div>
+  <input type="color" class="fmt-custom-color" id="fmtCustomColor" title="自訂顏色" value="#1e1d1a">
+</div>
 <div id="panelOverlay" style="display:none;position:fixed;inset:0;z-index:499;background:rgba(0,0,0,.3);backdrop-filter:blur(1px)"></div>
 
 <!-- Add Day Modal -->
@@ -784,6 +835,7 @@ async function init() {
   try { applyCover(); } catch(e) { console.error('applyCover error:', e); }
   try { subscribeToChanges(); } catch(e) { console.error('subscribe error:', e); }
   showApp();
+  try { initFormatBar(); } catch(e){ console.error(e); }
 }
 
 function subscribeToChanges() {
@@ -866,6 +918,7 @@ function render() {
   renderFilterBar();
   applyFilter();
   renderBudgets();
+  setTimeout(function(){ if(window.attachFormatBar) window.attachFormatBar(); }, 0);
 }
 
 function checkIsToday(day) {
@@ -2345,6 +2398,145 @@ document.getElementById('addLedgerCatBtn').addEventListener('click',()=>{
     });
   });
 })();
+
+// ── FORMAT TOOLBAR ──
+function initFormatBar() {
+  const bar = document.getElementById('fmtBar');
+  if (!bar) return;
+
+  let currentEl = null;
+
+  function showBar(el) {
+    currentEl = el;
+    const rect = el.getBoundingClientRect();
+    const barW = 280;
+    const left = Math.min(Math.max(rect.left, 8), window.innerWidth - barW - 8);
+    const top = Math.max(rect.top - 50, 60);
+    bar.style.left = left + 'px';
+    bar.style.top = top + 'px';
+    bar.classList.add('show');
+    updateBarState();
+  }
+
+  function hideBar(e) {
+    if (e && (bar.contains(e.relatedTarget) || e.relatedTarget === bar)) return;
+    setTimeout(() => {
+      if (!bar.matches(':hover') && document.activeElement !== bar &&
+          !bar.contains(document.activeElement)) {
+        bar.classList.remove('show');
+      }
+    }, 150);
+  }
+
+  function updateBarState() {
+    if (!currentEl) return;
+    const style = currentEl.style;
+    document.getElementById('fmtBold')?.classList.toggle('on', style.fontWeight === '700' || style.fontWeight === 'bold');
+    document.getElementById('fmtItalic')?.classList.toggle('on', style.fontStyle === 'italic');
+    document.getElementById('fmtUnderline')?.classList.toggle('on', style.textDecoration === 'underline');
+    // Update active color dot
+    bar.querySelectorAll('.fmt-color-dot').forEach(d => {
+      d.classList.toggle('active-color', d.dataset.c === style.color);
+    });
+  }
+
+  function applyStyle(prop, val, toggleVal = '') {
+    if (!currentEl) return;
+    if (toggleVal && currentEl.style[prop] === val) {
+      currentEl.style[prop] = toggleVal;
+    } else {
+      currentEl.style[prop] = val;
+    }
+    updateBarState();
+    saveElStyle(currentEl);
+    if (currentEl.tagName === 'TEXTAREA') autoResize(currentEl);
+  }
+
+  function saveElStyle(el) {
+    const style = {
+      fontWeight: el.style.fontWeight || '',
+      fontStyle: el.style.fontStyle || '',
+      textDecoration: el.style.textDecoration || '',
+      color: el.style.color || '',
+    };
+    const dayId = el.dataset.dayid;
+    if (!dayId) return;
+    const d = DATA.days.find(x => x.id === dayId);
+    if (!d) return;
+    if (el.dataset.stopnote) {
+      const s = d.stops.find(x => x.id === el.dataset.stopnote);
+      if (s) { s.noteStyle = style; scheduleSave(); }
+    } else if (el.dataset.sfieldbody) {
+      const s = d.stops.find(x => x.id === el.dataset.stopid);
+      const f = s?.fields?.find(x => x.id === el.dataset.sfieldbody);
+      if (f) { f.bodyStyle = style; scheduleSave(); }
+    } else if (el.dataset.fieldbody) {
+      const f = d.fields?.find(x => x.id === el.dataset.fieldbody);
+      if (f) { f.bodyStyle = style; scheduleSave(); }
+    } else if (el.dataset.tip !== undefined) {
+      if (!d.tipStyle) d.tipStyle = {};
+      Object.assign(d.tipStyle, style);
+      scheduleSave();
+    }
+  }
+
+  // Bold / Italic / Underline buttons
+  document.getElementById('fmtBold')?.addEventListener('click', () => applyStyle('fontWeight', '700', ''));
+  document.getElementById('fmtItalic')?.addEventListener('click', () => applyStyle('fontStyle', 'italic', ''));
+  document.getElementById('fmtUnderline')?.addEventListener('click', () => applyStyle('textDecoration', 'underline', ''));
+
+  // Color dots
+  bar.querySelectorAll('.fmt-color-dot').forEach(dot => {
+    dot.addEventListener('click', () => applyStyle('color', dot.dataset.c));
+  });
+
+  // Custom color picker
+  const customColor = document.getElementById('fmtCustomColor');
+  customColor?.addEventListener('input', () => applyStyle('color', customColor.value));
+
+  // Keep bar open when interacting with it
+  bar.addEventListener('mousedown', e => e.preventDefault());
+
+  // Attach listeners to all relevant fields
+  function attachToField(el) {
+    if (el._fmtAttached) return;
+    el._fmtAttached = true;
+    el.addEventListener('focus', () => showBar(el));
+    el.addEventListener('blur', hideBar);
+  }
+
+  // Called after each render to attach to new elements
+  window.attachFormatBar = function() {
+    document.querySelectorAll(
+      '.stop-note-input, .stop-field-body, .custom-field-body, .tip-box-editable'
+    ).forEach(attachToField);
+    // Apply saved styles
+    DATA.days.forEach(day => {
+      if (day.tipStyle) {
+        const el = document.querySelector('[data-tip="' + day.id + '"]');
+        if (el) Object.assign(el.style, day.tipStyle);
+      }
+      (day.stops || []).forEach(s => {
+        if (s.noteStyle) {
+          const el = document.querySelector('[data-stopnote="' + s.id + '"]');
+          if (el) Object.assign(el.style, s.noteStyle);
+        }
+        (s.fields || []).forEach(f => {
+          if (f.bodyStyle) {
+            const el = document.querySelector('[data-sfieldbody="' + f.id + '"]');
+            if (el) Object.assign(el.style, f.bodyStyle);
+          }
+        });
+      });
+      (day.fields || []).forEach(f => {
+        if (f.bodyStyle) {
+          const el = document.querySelector('[data-fieldbody="' + f.id + '"]');
+          if (el) Object.assign(el.style, f.bodyStyle);
+        }
+      });
+    });
+  };
+}
 // ── START ──
 init();
 
