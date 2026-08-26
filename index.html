@@ -398,10 +398,15 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
   box-shadow:0 4px 20px rgba(0,0,0,.35);
   padding:5px 8px;display:none;
   align-items:center;gap:3px;
-  transform:translateY(-8px);transition:opacity .15s,transform .15s;
-  opacity:0;pointer-events:none;
+  opacity:0;transition:opacity .15s;
+  pointer-events:none;user-select:none;
 }
-.fmt-bar.show{display:flex;opacity:1;transform:translateY(0);pointer-events:all}
+.fmt-bar.show{display:flex;opacity:1;pointer-events:all}
+.fmt-drag-handle{
+  color:rgba(255,255,255,.4);font-size:14px;
+  cursor:grab;padding:0 4px 0 0;flex-shrink:0;line-height:1;
+}
+.fmt-drag-handle:active{cursor:grabbing}
 .fmt-b{
   background:transparent;border:none;cursor:pointer;
   color:#e0ddd8;border-radius:6px;
@@ -591,6 +596,7 @@ input.fmt-custom-color{
 
 <!-- Format Toolbar -->
 <div id="fmtBar" class="fmt-bar">
+  <span class="fmt-drag-handle" id="fmtDragHandle">⠿</span>
   <button class="fmt-b" id="fmtBold" title="粗體"><strong>B</strong></button>
   <button class="fmt-b" id="fmtItalic" title="斜體"><em>I</em></button>
   <button class="fmt-b" id="fmtUnderline" title="底線"><u>U</u></button>
@@ -2539,8 +2545,60 @@ function initFormatBar() {
   const customColor = document.getElementById('fmtCustomColor');
   customColor?.addEventListener('input', () => applyStyle('foreColor', customColor.value));
 
-  // Keep bar open when interacting with it
-  bar.addEventListener('mousedown', e => e.preventDefault());
+  // Keep bar open when interacting with it (except drag handle)
+  bar.addEventListener('mousedown', e => {
+    if (!e.target.closest('#fmtDragHandle')) e.preventDefault();
+  });
+
+  // ── Drag to move ──
+  let isDragging = false, dragOffX = 0, dragOffY = 0;
+
+  const handle = document.getElementById('fmtDragHandle');
+  handle?.addEventListener('mousedown', e => {
+    e.preventDefault();
+    isDragging = true;
+    dragOffX = e.clientX - bar.getBoundingClientRect().left;
+    dragOffY = e.clientY - bar.getBoundingClientRect().top;
+    bar.style.transition = 'none';
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+  });
+
+  // Touch support
+  handle?.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    isDragging = true;
+    dragOffX = t.clientX - bar.getBoundingClientRect().left;
+    dragOffY = t.clientY - bar.getBoundingClientRect().top;
+    bar.style.transition = 'none';
+    document.addEventListener('touchmove', onDragTouchMove, {passive:false});
+    document.addEventListener('touchend', onDragEnd);
+  }, {passive:true});
+
+  function onDragMove(e) {
+    if (!isDragging) return;
+    const x = Math.min(Math.max(e.clientX - dragOffX, 0), window.innerWidth - bar.offsetWidth);
+    const y = Math.min(Math.max(e.clientY - dragOffY, 0), window.innerHeight - bar.offsetHeight);
+    bar.style.left = x + 'px';
+    bar.style.top = y + 'px';
+  }
+  function onDragTouchMove(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    const x = Math.min(Math.max(t.clientX - dragOffX, 0), window.innerWidth - bar.offsetWidth);
+    const y = Math.min(Math.max(t.clientY - dragOffY, 0), window.innerHeight - bar.offsetHeight);
+    bar.style.left = x + 'px';
+    bar.style.top = y + 'px';
+  }
+  function onDragEnd() {
+    isDragging = false;
+    bar.style.transition = '';
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+    document.removeEventListener('touchmove', onDragTouchMove);
+    document.removeEventListener('touchend', onDragEnd);
+  }
 
   // Attach listeners to all relevant fields
   function attachToField(el) {
