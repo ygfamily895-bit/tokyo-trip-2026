@@ -425,6 +425,32 @@ input.fmt-custom-color{
   cursor:pointer;padding:0;background:none;
   -webkit-appearance:none;
 }
+
+/* ── CONTENTEDITABLE FIELDS ── */
+.ce-field{
+  outline:none;min-height:24px;word-break:break-word;
+  font-family:'Noto Sans TC',sans-serif;line-height:1.6;
+  border-radius:4px;padding:2px 4px;width:100%;box-sizing:border-box;
+  white-space:pre-wrap;
+}
+.ce-field:focus{background:#f5f3ef}
+.ce-field:empty::before{content:attr(data-placeholder);color:#bbb;pointer-events:none}
+.ce-field-body{
+  outline:none;font-family:'Noto Sans TC',sans-serif;
+  line-height:1.7;min-height:32px;word-break:break-word;
+  width:100%;padding:6px 10px;box-sizing:border-box;
+  white-space:pre-wrap;
+}
+.ce-field-body:focus{background:#fafaf8}
+.ce-field-body:empty::before{content:attr(data-placeholder);color:#bbb;pointer-events:none}
+.ce-custom-body{
+  outline:none;font-family:'Noto Sans TC',sans-serif;
+  line-height:1.7;min-height:36px;word-break:break-word;
+  width:100%;padding:7px 10px;box-sizing:border-box;
+  white-space:pre-wrap;
+}
+.ce-custom-body:focus{background:#f5f3ef}
+.ce-custom-body:empty::before{content:attr(data-placeholder);color:#bbb;pointer-events:none}
 /* TOAST */
 .toast{position:fixed;bottom:24px;right:24px;background:#1e1d1a;color:#fff;padding:9px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.25);transform:translateY(60px);opacity:0;transition:all .3s;z-index:9999}
 .toast.show{transform:translateY(0);opacity:1}
@@ -1096,7 +1122,9 @@ function renderStop(s, dayId, idx, allStops) {
     <div class="stop-icon-wrap"><div class="stop-icon-select" data-stopemoji="${s.id}" data-dayid="${dayId}">${s.icon}</div></div>
     <div class="stop-content">
       <input class="stop-name-input" value="${escA(s.name)}" data-stopname="${s.id}" data-dayid="${dayId}" placeholder="行程名稱">
-      <textarea class="stop-note-input" data-stopnote="${s.id}" data-dayid="${dayId}" placeholder="備注：交通方式、提醒…">${esc(s.note)}</textarea>
+      <div class="ce-field" contenteditable="true"
+        data-stopnote="${s.id}" data-dayid="${dayId}"
+        data-placeholder="備注：交通方式、提醒…">${s.note||''}</div>
       ${s.name?`<a class="map-btn" href="https://www.google.com/maps/search/${encodeURIComponent(s.name+' 日本')}" target="_blank">📍 地圖</a>`:''}
     </div>
     <div class="stop-actions"><button class="icon-btn del" data-deletestop="${s.id}" data-dayid="${dayId}">✕</button></div>
@@ -1144,7 +1172,9 @@ function renderStopField(f, stopId, dayId) {
       <input class="stop-field-label" value="${escA(f.label)}" data-sfieldlabel="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" placeholder="欄位名稱">
       <button class="stop-field-del" data-deletesf="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">✕</button>
     </div>
-    <textarea class="stop-field-body" data-sfieldbody="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" placeholder="輸入內容…">${esc(f.body)}</textarea>
+    <div class="ce-field-body" contenteditable="true"
+      data-sfieldbody="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}"
+      data-placeholder="輸入內容…">${f.body||''}</div>
   </div>`;
 }
 
@@ -1154,7 +1184,9 @@ function renderField(f, dayId) {
       <input class="custom-field-label" value="${escA(f.label)}" data-fieldlabel="${f.id}" data-dayid="${dayId}" placeholder="欄位名稱">
       <button class="field-del-btn" data-deletefield="${f.id}" data-dayid="${dayId}">✕</button>
     </div>
-    <textarea class="custom-field-body" data-fieldbody="${f.id}" data-dayid="${dayId}" placeholder="輸入內容…">${esc(f.body)}</textarea>
+    <div class="ce-custom-body" contenteditable="true"
+      data-fieldbody="${f.id}" data-dayid="${dayId}"
+      data-placeholder="輸入內容…">${f.body||''}</div>
   </div>`;
 }
 
@@ -1251,7 +1283,7 @@ function bindDayEvents(sec, day) {
     // stop name
     if (t.dataset.stopname) { updateStop(t.dataset.dayid,t.dataset.stopname,'name',t.value); return; }
     // stop note
-    if (t.dataset.stopnote) { updateStop(t.dataset.dayid,t.dataset.stopnote,'note',t.value); return; }
+    if (t.dataset.stopnote) { updateStop(t.dataset.dayid,t.dataset.stopnote,'note',t.innerHTML); return; }
     // budget jpy
     if (t.dataset.stopcost) { onStopCostChange(t.dataset.dayid,t.dataset.stopcost,t.value); return; }
     if (t.dataset.stopcurr) { onStopCurrChange(t.dataset.dayid,t.dataset.stopcurr,t.value); return; }
@@ -1260,11 +1292,11 @@ function bindDayEvents(sec, day) {
     // stop field label
     if (t.dataset.sfieldlabel) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s&&s.fields){const f=s.fields.find(x=>x.id===t.dataset.sfieldlabel);if(f){f.label=t.value;scheduleSave();}}}return; }
     // stop field body
-    if (t.dataset.sfieldbody) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s&&s.fields){const f=s.fields.find(x=>x.id===t.dataset.sfieldbody);if(f){f.body=t.value;scheduleSave();}}}return; }
+    if (t.dataset.sfieldbody) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s&&s.fields){const f=s.fields.find(x=>x.id===t.dataset.sfieldbody);if(f){f.body=t.innerHTML;scheduleSave();}}}return; }
     // day field label
     if (t.dataset.fieldlabel) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d&&d.fields){const f=d.fields.find(x=>x.id===t.dataset.fieldlabel);if(f){f.label=t.value;scheduleSave();}}return; }
     // day field body
-    if (t.dataset.fieldbody) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d&&d.fields){const f=d.fields.find(x=>x.id===t.dataset.fieldbody);if(f){f.body=t.value;scheduleSave();}}return; }
+    if (t.dataset.fieldbody) { const d=DATA.days.find(x=>x.id===t.dataset.dayid);if(d&&d.fields){const f=d.fields.find(x=>x.id===t.dataset.fieldbody);if(f){f.body=t.innerHTML;scheduleSave();}}return; }
     // image URL input
     if (t.dataset.sfimgurl) {
       const url=t.value.trim(); if(!url)return;
@@ -1289,7 +1321,19 @@ function bindDayEvents(sec, day) {
   sec.addEventListener('input', e => {
     const t = e.target;
     if (t.tagName === 'TEXTAREA') autoResize(t);
-    if (t.dataset.tip !== undefined) { const d=DATA.days.find(x=>x.id===t.dataset.tip);if(d){d.tip=t.innerText.trim();scheduleSave();} }
+    // contenteditable fields save on input
+    if (t.dataset.stopnote) { updateStop(t.dataset.dayid,t.dataset.stopnote,'note',t.innerHTML); return; }
+    if (t.dataset.sfieldbody) {
+      const d=DATA.days.find(x=>x.id===t.dataset.dayid);
+      if(d){const s=d.stops.find(x=>x.id===t.dataset.stopid);if(s&&s.fields){const f=s.fields.find(x=>x.id===t.dataset.sfieldbody);if(f){f.body=t.innerHTML;scheduleSave();}}}
+      return;
+    }
+    if (t.dataset.fieldbody) {
+      const d=DATA.days.find(x=>x.id===t.dataset.dayid);
+      if(d&&d.fields){const f=d.fields.find(x=>x.id===t.dataset.fieldbody);if(f){f.body=t.innerHTML;scheduleSave();}}
+      return;
+    }
+    if (t.dataset.tip !== undefined) { const d=DATA.days.find(x=>x.id===t.dataset.tip);if(d){d.tip=t.innerHTML;scheduleSave();} }
   });
 
   // drag
@@ -2406,17 +2450,33 @@ function initFormatBar() {
 
   let currentEl = null;
 
-  function showBar(el) {
+  function showBar(el, x, y) {
     currentEl = el;
-    const rect = el.getBoundingClientRect();
-    const barW = 280;
-    const left = Math.min(Math.max(rect.left, 8), window.innerWidth - barW - 8);
-    const top = Math.max(rect.top - 50, 60);
+    const barW = 290;
+    const px = x != null ? x : el.getBoundingClientRect().left;
+    const py = y != null ? y : el.getBoundingClientRect().top;
+    const left = Math.min(Math.max(px - 20, 8), window.innerWidth - barW - 8);
+    const top = Math.max(py - 54, 60);
     bar.style.left = left + 'px';
     bar.style.top = top + 'px';
     bar.classList.add('show');
     updateBarState();
   }
+
+  // Show bar on text selection (mouseup/touchend)
+  function onSelectionChange() {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) return; // no selection
+    const anchorEl = sel.anchorNode?.parentElement;
+    const focusEl = sel.focusNode?.parentElement;
+    const field = anchorEl?.closest('.ce-field,.ce-field-body,.ce-custom-body,.tip-box-editable');
+    if (!field) return;
+    const range = sel.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    showBar(field, rect.left + rect.width / 2, rect.top);
+  }
+  document.addEventListener('mouseup', onSelectionChange);
+  document.addEventListener('touchend', onSelectionChange);
 
   function hideBar(e) {
     if (e && (bar.contains(e.relatedTarget) || e.relatedTarget === bar)) return;
@@ -2429,70 +2489,55 @@ function initFormatBar() {
   }
 
   function updateBarState() {
-    if (!currentEl) return;
-    const style = currentEl.style;
-    document.getElementById('fmtBold')?.classList.toggle('on', style.fontWeight === '700' || style.fontWeight === 'bold');
-    document.getElementById('fmtItalic')?.classList.toggle('on', style.fontStyle === 'italic');
-    document.getElementById('fmtUnderline')?.classList.toggle('on', style.textDecoration === 'underline');
-    // Update active color dot
-    bar.querySelectorAll('.fmt-color-dot').forEach(d => {
-      d.classList.toggle('active-color', d.dataset.c === style.color);
-    });
+    try {
+      document.getElementById('fmtBold')?.classList.toggle('on', document.queryCommandState('bold'));
+      document.getElementById('fmtItalic')?.classList.toggle('on', document.queryCommandState('italic'));
+      document.getElementById('fmtUnderline')?.classList.toggle('on', document.queryCommandState('underline'));
+    } catch(e) {}
   }
 
-  function applyStyle(prop, val, toggleVal = '') {
-    if (!currentEl) return;
-    if (toggleVal && currentEl.style[prop] === val) {
-      currentEl.style[prop] = toggleVal;
-    } else {
-      currentEl.style[prop] = val;
+  function applyStyle(cmd, val) {
+    // execCommand works on selected text in contenteditable
+    // and supports native undo (Ctrl+Z)
+    document.execCommand(cmd, false, val || null);
+    if (currentEl) {
+      // save innerHTML after formatting
+      const dayId = currentEl.dataset.dayid;
+      if (!dayId) return;
+      const d = DATA.days.find(x => x.id === dayId);
+      if (!d) return;
+      if (currentEl.dataset.stopnote) {
+        const s = d.stops.find(x => x.id === currentEl.dataset.stopnote);
+        if (s) { s.note = currentEl.innerHTML; scheduleSave(); }
+      } else if (currentEl.dataset.sfieldbody) {
+        const s = d.stops.find(x => x.id === currentEl.dataset.stopid);
+        const f = s?.fields?.find(x => x.id === currentEl.dataset.sfieldbody);
+        if (f) { f.body = currentEl.innerHTML; scheduleSave(); }
+      } else if (currentEl.dataset.fieldbody) {
+        const f = d.fields?.find(x => x.id === currentEl.dataset.fieldbody);
+        if (f) { f.body = currentEl.innerHTML; scheduleSave(); }
+      } else if (currentEl.dataset.tip !== undefined) {
+        d.tip = currentEl.innerHTML; scheduleSave();
+      }
     }
     updateBarState();
-    saveElStyle(currentEl);
-    if (currentEl.tagName === 'TEXTAREA') autoResize(currentEl);
   }
 
-  function saveElStyle(el) {
-    const style = {
-      fontWeight: el.style.fontWeight || '',
-      fontStyle: el.style.fontStyle || '',
-      textDecoration: el.style.textDecoration || '',
-      color: el.style.color || '',
-    };
-    const dayId = el.dataset.dayid;
-    if (!dayId) return;
-    const d = DATA.days.find(x => x.id === dayId);
-    if (!d) return;
-    if (el.dataset.stopnote) {
-      const s = d.stops.find(x => x.id === el.dataset.stopnote);
-      if (s) { s.noteStyle = style; scheduleSave(); }
-    } else if (el.dataset.sfieldbody) {
-      const s = d.stops.find(x => x.id === el.dataset.stopid);
-      const f = s?.fields?.find(x => x.id === el.dataset.sfieldbody);
-      if (f) { f.bodyStyle = style; scheduleSave(); }
-    } else if (el.dataset.fieldbody) {
-      const f = d.fields?.find(x => x.id === el.dataset.fieldbody);
-      if (f) { f.bodyStyle = style; scheduleSave(); }
-    } else if (el.dataset.tip !== undefined) {
-      if (!d.tipStyle) d.tipStyle = {};
-      Object.assign(d.tipStyle, style);
-      scheduleSave();
-    }
-  }
+  // saveElStyle removed — saving handled in applyStyle via innerHTML
 
   // Bold / Italic / Underline buttons
-  document.getElementById('fmtBold')?.addEventListener('click', () => applyStyle('fontWeight', '700', ''));
-  document.getElementById('fmtItalic')?.addEventListener('click', () => applyStyle('fontStyle', 'italic', ''));
-  document.getElementById('fmtUnderline')?.addEventListener('click', () => applyStyle('textDecoration', 'underline', ''));
+  document.getElementById('fmtBold')?.addEventListener('click', () => applyStyle('bold'));
+  document.getElementById('fmtItalic')?.addEventListener('click', () => applyStyle('italic'));
+  document.getElementById('fmtUnderline')?.addEventListener('click', () => applyStyle('underline'));
 
   // Color dots
   bar.querySelectorAll('.fmt-color-dot').forEach(dot => {
-    dot.addEventListener('click', () => applyStyle('color', dot.dataset.c));
+    dot.addEventListener('click', () => applyStyle('foreColor', dot.dataset.c));
   });
 
   // Custom color picker
   const customColor = document.getElementById('fmtCustomColor');
-  customColor?.addEventListener('input', () => applyStyle('color', customColor.value));
+  customColor?.addEventListener('input', () => applyStyle('foreColor', customColor.value));
 
   // Keep bar open when interacting with it
   bar.addEventListener('mousedown', e => e.preventDefault());
@@ -2508,33 +2553,8 @@ function initFormatBar() {
   // Called after each render to attach to new elements
   window.attachFormatBar = function() {
     document.querySelectorAll(
-      '.stop-note-input, .stop-field-body, .custom-field-body, .tip-box-editable'
+      '.ce-field, .ce-field-body, .ce-custom-body, .tip-box-editable'
     ).forEach(attachToField);
-    // Apply saved styles
-    DATA.days.forEach(day => {
-      if (day.tipStyle) {
-        const el = document.querySelector('[data-tip="' + day.id + '"]');
-        if (el) Object.assign(el.style, day.tipStyle);
-      }
-      (day.stops || []).forEach(s => {
-        if (s.noteStyle) {
-          const el = document.querySelector('[data-stopnote="' + s.id + '"]');
-          if (el) Object.assign(el.style, s.noteStyle);
-        }
-        (s.fields || []).forEach(f => {
-          if (f.bodyStyle) {
-            const el = document.querySelector('[data-sfieldbody="' + f.id + '"]');
-            if (el) Object.assign(el.style, f.bodyStyle);
-          }
-        });
-      });
-      (day.fields || []).forEach(f => {
-        if (f.bodyStyle) {
-          const el = document.querySelector('[data-fieldbody="' + f.id + '"]');
-          if (el) Object.assign(el.style, f.bodyStyle);
-        }
-      });
-    });
   };
 }
 // ── START ──
