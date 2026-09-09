@@ -1133,10 +1133,14 @@ function renderStop(s, dayId, idx, allStops) {
       <div class="ce-field" contenteditable="true"
         data-stopnote="${s.id}" data-dayid="${dayId}"
         data-placeholder="備注：交通方式、提醒…">${s.note||''}</div>
-      ${s.name?`
-        <a class="map-btn" href="https://www.google.com/maps/search/${encodeURIComponent(s.name+' 日本')}" target="_blank">📍 Google</a>
-        <a class="map-btn naver" href="https://map.naver.com/p/search/${encodeURIComponent(s.name)}" target="_blank">🟢 NAVER</a>
-      `:''}
+      ${(()=>{
+        const af=(s.fields||[]).find(f=>f.label&&f.label.includes('地址'));
+        const addr=af?.body?.replace(/<[^>]+>/g,'').trim();
+        const q=encodeURIComponent(addr||(s.name?s.name+' 日本':''));
+        if(!q)return '';
+        return `<a class="map-btn" href="https://www.google.com/maps/search/${q}" target="_blank">📍 Google</a>`
+             +`<a class="map-btn naver" href="https://map.naver.com/p/search/${q}" target="_blank">🟢 NAVER</a>`;
+      })()}
     </div>
     <div class="stop-actions"><button class="icon-btn del" data-deletestop="${s.id}" data-dayid="${dayId}">✕</button></div>
     <div class="stop-extra">
