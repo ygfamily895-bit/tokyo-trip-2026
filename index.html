@@ -157,6 +157,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text
 /* STOP FIELDS */
 .stop-field{border:1px solid #ece8e0;border-radius:7px;overflow:hidden;background:#fff;cursor:default}
 .stop-field.sf-drag-over{border-top:2px solid var(--accent2)}
+.stop-field.sf-dragging{opacity:.35}
 .sf-drag-handle{cursor:grab;color:#ccc;font-size:12px;padding:0 4px;user-select:none;flex-shrink:0}
 .sf-drag-handle:active{cursor:grabbing}
 .stop-field-header{display:flex;align-items:center;gap:6px;padding:4px 9px;background:#f5f3ef;border-bottom:1px solid #ece8e0}
@@ -1168,9 +1169,9 @@ function renderStopField(f, stopId, dayId) {
           ${i<imgs.length-1?`<button data-sfimgdown="${i}" data-sfid="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" style="background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:4px;width:20px;height:20px;cursor:pointer;font-size:10px">▼</button>`:''}
         </div>
       </div>`).join('');
-    return `<div class="stop-field" draggable="true" data-sfid="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">
+    return `<div class="stop-field" data-sfid="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">
       <div class="stop-field-header">
-        <span class="sf-drag-handle" draggable="false">⠿</span>
+        <span class="sf-drag-handle" draggable="true">⠿</span>
         <input class="stop-field-label" value="${escA(f.label||'圖片')}" data-sfieldlabel="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" placeholder="欄位名稱">
         <button class="stop-field-del" data-deletesf="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">✕</button>
       </div>
@@ -1186,9 +1187,9 @@ function renderStopField(f, stopId, dayId) {
       </div>
     </div>`;
   }
-  return `<div class="stop-field" draggable="true" data-sfid="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">
+  return `<div class="stop-field" data-sfid="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">
     <div class="stop-field-header">
-      <span class="sf-drag-handle" draggable="false">⠿</span>
+      <span class="sf-drag-handle" draggable="true">⠿</span>
       <input class="stop-field-label" value="${escA(f.label)}" data-sfieldlabel="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}" placeholder="欄位名稱">
       <button class="stop-field-del" data-deletesf="${f.id}" data-stopid="${stopId}" data-dayid="${dayId}">✕</button>
     </div>
@@ -1359,30 +1360,37 @@ function bindDayEvents(sec, day) {
   // ── Stop-field drag reorder ──
   let sfDragSrc=null, sfDragSrcStop=null, sfDragSrcDay=null;
   function bindStopFieldDrag(){
-    sec.querySelectorAll('.stop-field[draggable]').forEach(el=>{
-      el.addEventListener('dragstart', e=>{
-        // only start if dragging from handle
-        if(!e.target.classList.contains('sf-drag-handle')) { e.preventDefault(); return; }
-        sfDragSrc=el.dataset.sfid;
-        sfDragSrcStop=el.dataset.stopid;
-        sfDragSrcDay=el.dataset.dayid;
-        e.dataTransfer.effectAllowed='move';
-        setTimeout(()=>el.style.opacity='.35', 0);
+    // Attach dragstart to handles (draggable="true" is on the handle span)
+    sec.querySelectorAll('.sf-drag-handle').forEach(handle=>{
+      const el = handle.closest('.stop-field');
+      if (!el) return;
+      handle.addEventListener('dragstart', e=>{
+        sfDragSrc = el.dataset.sfid;
+        sfDragSrcStop = el.dataset.stopid;
+        sfDragSrcDay = el.dataset.dayid;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', sfDragSrc);
+        setTimeout(()=>el.classList.add('sf-dragging'), 0);
       });
-      el.addEventListener('dragend', ()=>{ el.style.opacity=''; });
+      handle.addEventListener('dragend', ()=>{ el.classList.remove('sf-dragging'); });
+    });
+    // Attach dragover/drop to field containers
+    sec.querySelectorAll('.stop-field').forEach(el=>{
       el.addEventListener('dragover', e=>{ e.preventDefault(); el.classList.add('sf-drag-over'); });
-      el.addEventListener('dragleave', ()=>el.classList.remove('sf-drag-over'));
+      el.addEventListener('dragleave', e=>{
+        if (!el.contains(e.relatedTarget)) el.classList.remove('sf-drag-over');
+      });
       el.addEventListener('drop', e=>{
         e.preventDefault(); el.classList.remove('sf-drag-over');
-        if(!sfDragSrc||sfDragSrc===el.dataset.sfid) return;
-        const d=DATA.days.find(x=>x.id===sfDragSrcDay); if(!d)return;
-        const s=d.stops.find(x=>x.id===sfDragSrcStop); if(!s||!s.fields)return;
-        const fromIdx=s.fields.findIndex(f=>f.id===sfDragSrc);
-        const toIdx=s.fields.findIndex(f=>f.id===el.dataset.sfid);
+        if (!sfDragSrc || sfDragSrc === el.dataset.sfid) return;
+        const d = DATA.days.find(x=>x.id===sfDragSrcDay); if(!d)return;
+        const s = d.stops.find(x=>x.id===sfDragSrcStop); if(!s||!s.fields)return;
+        const fromIdx = s.fields.findIndex(f=>f.id===sfDragSrc);
+        const toIdx = s.fields.findIndex(f=>f.id===el.dataset.sfid);
         if(fromIdx===-1||toIdx===-1)return;
-        const [moved]=s.fields.splice(fromIdx,1);
-        s.fields.splice(toIdx,0,moved);
-        sfDragSrc=null;
+        const [moved] = s.fields.splice(fromIdx, 1);
+        s.fields.splice(toIdx, 0, moved);
+        sfDragSrc = null;
         render(); scheduleSave();
       });
     });
