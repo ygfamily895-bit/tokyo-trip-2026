@@ -1140,7 +1140,7 @@ function renderStop(s, dayId, idx, allStops) {
       ${(()=>{
         const af=(s.fields||[]).find(f=>f.label&&f.label.includes('地址'));
         const addr=af?.body?.replace(/<[^>]+>/g,'').trim();
-        const q=encodeURIComponent(addr||(s.name?s.name+' 日本':''));
+        const q=encodeURIComponent(addr||s.name||'');
         if(!q)return '';
         return `<a class="map-btn" href="https://www.google.com/maps/search/${q}" target="_blank">📍 Google</a>`
              +`<a class="map-btn naver" href="https://map.naver.com/p/search/${q}" target="_blank">🟢 NAVER</a>`;
